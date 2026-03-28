@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/sebas/OneDrive/Desktop/kode/**)",
+      "Bash(npx create-next-app@latest struktur --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
+      "Bash(printf \"n\\\\n\")",
+      "Bash(printf \"n\\\\nn\\\\n\")",
+      "Bash(yes n:*)"
+    ]
+  }
+}
