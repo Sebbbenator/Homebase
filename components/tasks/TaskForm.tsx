@@ -70,7 +70,8 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
 
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Task' : 'New Task'}>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {/* Title + description at top — most important */}
         <div>
           <label className={labelClass}>Title *</label>
           <input
@@ -94,7 +95,38 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
           />
         </div>
 
-        {/* Preset toggle — only when creating, not editing */}
+        {/* Options — compact row layout for quick tapping */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelClass}>Assign To</label>
+            <select
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">Anyone</option>
+              {members.map((m) => (
+                <option key={m.user_id} value={m.user_id}>
+                  {m.email ?? m.user_id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {!isPreset && (
+            <div>
+              <label className={labelClass}>Due Date</label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Preset toggle — only when creating */}
         {!isEdit && (
           <div>
             <label className={labelClass}>Type</label>
@@ -122,88 +154,56 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
                 Preset
               </button>
             </div>
-            {isPreset && (
-              <p className="text-[11px] text-neutral-500 mt-1.5">
-                Preset tasks stay forever. Track who did them and when.
-              </p>
-            )}
           </div>
         )}
 
-        <div>
-          <label className={labelClass}>Assign To</label>
-          <select
-            value={assignedTo}
-            onChange={(e) => setAssignedTo(e.target.value)}
-            className={inputClass}
-          >
-            <option value="">Anyone</option>
-            {members.map((m) => (
-              <option key={m.user_id} value={m.user_id}>
-                {m.email ?? m.user_id.slice(0, 8)}
-              </option>
-            ))}
-          </select>
-        </div>
-
         {!isPreset && (
-          <>
-            <div>
-              <label className={labelClass}>Due Date</label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className={inputClass}
-              />
+          <div>
+            <label className={labelClass}>Repeat</label>
+            <div className="grid grid-cols-4 gap-2">
+              {(['none', 'daily', 'weekly', 'biweekly'] as RepeatType[]).map((r) => {
+                const labels: Record<RepeatType, string> = {
+                  none: 'None',
+                  daily: 'Daily',
+                  weekly: 'Weekly',
+                  biweekly: '2 Weeks',
+                }
+                return (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRepeatType(r)}
+                  className={`py-2 text-xs font-medium rounded-lg transition-colors ${
+                    repeatType === r
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                  }`}
+                >
+                  {labels[r]}
+                </button>
+                )
+              })}
             </div>
-
-            <div>
-              <label className={labelClass}>Repeat</label>
-              <div className="grid grid-cols-4 gap-2">
-                {(['none', 'daily', 'weekly', 'biweekly'] as RepeatType[]).map((r) => {
-                  const labels: Record<RepeatType, string> = {
-                    none: 'None',
-                    daily: 'Daily',
-                    weekly: 'Weekly',
-                    biweekly: '2 Weeks',
-                  }
-                  return (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRepeatType(r)}
-                    className={`py-2 text-xs font-medium rounded-lg transition-colors ${
-                      repeatType === r
-                        ? 'bg-orange-600 text-white'
-                        : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
-                    }`}
-                  >
-                    {labels[r]}
-                  </button>
-                  )
-                })}
-              </div>
-            </div>
-          </>
+          </div>
         )}
 
         {error && (
           <p className="text-red-400 text-sm bg-red-400/10 rounded-lg px-3 py-2">{error}</p>
         )}
 
+        {/* Action buttons — at the very bottom, easy thumb reach */}
         <div className="flex gap-3 pt-1">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-medium rounded-xl text-sm transition-colors"
+            className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-medium rounded-xl text-sm transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-medium rounded-xl text-sm transition-colors"
+            className="flex-1 py-3 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-medium rounded-xl text-sm transition-colors"
           >
             {loading ? 'Saving...' : isEdit ? 'Update' : 'Create Task'}
           </button>

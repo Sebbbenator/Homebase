@@ -25,7 +25,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -34,7 +34,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
       {/* Panel */}
       <div
         className={cn(
-          'relative w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200',
+          'relative w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200 max-h-[85vh] overflow-y-auto',
           className
         )}
       >
@@ -49,7 +49,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
             </button>
           </div>
         )}
-        <div className="p-5">{children}</div>
+        <div className="p-5 pb-8 sm:pb-5">{children}</div>
       </div>
     </div>
   )
