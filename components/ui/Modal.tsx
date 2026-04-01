@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -13,6 +14,10 @@ interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, children, className }: ModalProps) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => {
@@ -22,35 +27,90 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
     return () => document.removeEventListener('keydown', handler)
   }, [open, onClose])
 
-  if (!open) return null
+  useEffect(() => {
+    if (!open) return
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [open])
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
+  if (!open || !mounted) return null
+
+  return createPortal(
+    <>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
+        style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          zIndex: 50,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(4px)',
+        }}
       />
+      {/* Centering wrapper — full screen flex */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          zIndex: 51,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          pointerEvents: 'none',
+        }}
+      >
       {/* Panel */}
       <div
-        className={cn(
-          'relative w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200 max-h-[85vh] overflow-y-auto',
-          className
-        )}
+        className={cn(className)}
+        style={{
+          width: '100%',
+          maxWidth: '28rem',
+          maxHeight: 'calc(100vh - 32px)',
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: '#171717',
+          border: '1px solid #262626',
+          borderRadius: '1rem',
+          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+          animation: 'modal-slide-up 0.2s ease-out',
+          pointerEvents: 'auto',
+        }}
       >
         {title && (
-          <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-neutral-800">
-            <h2 className="text-base font-semibold text-neutral-50">{title}</h2>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '20px 20px 16px 20px',
+              borderBottom: '1px solid #262626',
+              flexShrink: 0,
+            }}
+          >
+            <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#fafafa' }}>{title}</h2>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors"
+              style={{
+                padding: '6px',
+                borderRadius: '8px',
+                color: '#a3a3a3',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+              }}
             >
-              <X className="w-4 h-4" />
+              <X style={{ width: 16, height: 16 }} />
             </button>
           </div>
         )}
-        <div className="p-5 pb-8 sm:pb-5">{children}</div>
+        <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+          {children}
+        </div>
       </div>
-    </div>
+      </div>
+    </>,
+    document.body
   )
 }
