@@ -5,7 +5,11 @@
       "Bash(npx create-next-app@latest struktur --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
       "Bash(printf \"n\\\\n\")",
       "Bash(printf \"n\\\\nn\\\\n\")",
-      "Bash(yes n:*)"
+      "Bash(yes n:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(npx web-push:*)",
+      "Bash(node -e \":*)"
     ]
   }
 }
