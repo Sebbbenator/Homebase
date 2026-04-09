@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { createTask, updateTask } from '@/lib/actions/tasks'
-import type { Task, HomeMember, RepeatType } from '@/lib/types'
+import type { Task, HomeMember } from '@/lib/types'
 
 interface TaskFormProps {
   open: boolean
@@ -16,13 +16,9 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
   const [title, setTitle] = useState(editTask?.title ?? '')
   const [description, setDescription] = useState(editTask?.description ?? '')
   const [assignedTo, setAssignedTo] = useState(editTask?.assigned_to ?? '')
-  const [dueDate, setDueDate] = useState(editTask?.due_date ?? '')
-  const [repeatType, setRepeatType] = useState<RepeatType>(editTask?.repeat_type ?? 'none')
-  const [isPreset, setIsPreset] = useState(editTask?.is_preset ?? false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Reset when modal opens with new task
   const isEdit = !!editTask
 
   async function handleSubmit(e: React.FormEvent) {
@@ -35,17 +31,15 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
           title: title.trim(),
           description: description.trim() || undefined,
           assigned_to: assignedTo || null,
-          due_date: dueDate || null,
-          repeat_type: repeatType,
         })
       } else {
         await createTask({
           title: title.trim(),
           description: description.trim() || undefined,
           assigned_to: assignedTo || null,
-          due_date: isPreset ? null : (dueDate || null),
-          repeat_type: isPreset ? 'none' : repeatType,
-          is_preset: isPreset,
+          due_date: null,
+          repeat_type: 'none',
+          is_preset: true,
         })
       }
       onClose()
@@ -53,9 +47,6 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
         setTitle('')
         setDescription('')
         setAssignedTo('')
-        setDueDate('')
-        setRepeatType('none')
-        setIsPreset(false)
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -71,7 +62,6 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Task' : 'New Task'}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {/* Title + description at top — most important */}
         <div>
           <label className={labelClass}>Title *</label>
           <input
@@ -95,103 +85,26 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
           />
         </div>
 
-        {/* Options — compact row layout for quick tapping */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={labelClass}>Assign To</label>
-            <select
-              value={assignedTo}
-              onChange={(e) => setAssignedTo(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Anyone</option>
-              {members.map((m) => (
-                <option key={m.user_id} value={m.user_id}>
-                  {m.email ?? m.user_id.slice(0, 8)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {!isPreset && (
-            <div>
-              <label className={labelClass}>Due Date</label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className={inputClass}
-              />
-            </div>
-          )}
+        <div>
+          <label className={labelClass}>Assign To</label>
+          <select
+            value={assignedTo}
+            onChange={(e) => setAssignedTo(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">Anyone</option>
+            {members.map((m) => (
+              <option key={m.user_id} value={m.user_id}>
+                {m.email ?? m.user_id.slice(0, 8)}
+              </option>
+            ))}
+          </select>
         </div>
-
-        {/* Preset toggle — only when creating */}
-        {!isEdit && (
-          <div>
-            <label className={labelClass}>Type</label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setIsPreset(false)}
-                className={`py-2 text-xs font-medium rounded-lg transition-colors ${
-                  !isPreset
-                    ? 'bg-orange-600 text-white'
-                    : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
-                }`}
-              >
-                Regular Task
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsPreset(true)}
-                className={`py-2 text-xs font-medium rounded-lg transition-colors ${
-                  isPreset
-                    ? 'bg-orange-600 text-white'
-                    : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
-                }`}
-              >
-                Preset
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!isPreset && (
-          <div>
-            <label className={labelClass}>Repeat</label>
-            <div className="grid grid-cols-4 gap-2">
-              {(['none', 'daily', 'weekly', 'biweekly'] as RepeatType[]).map((r) => {
-                const labels: Record<RepeatType, string> = {
-                  none: 'None',
-                  daily: 'Daily',
-                  weekly: 'Weekly',
-                  biweekly: '2 Weeks',
-                }
-                return (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRepeatType(r)}
-                  className={`py-2 text-xs font-medium rounded-lg transition-colors ${
-                    repeatType === r
-                      ? 'bg-orange-600 text-white'
-                      : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
-                  }`}
-                >
-                  {labels[r]}
-                </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
 
         {error && (
           <p className="text-red-400 text-sm bg-red-400/10 rounded-lg px-3 py-2">{error}</p>
         )}
 
-        {/* Action buttons — at the very bottom, easy thumb reach */}
         <div className="flex gap-3 pt-1">
           <button
             type="button"

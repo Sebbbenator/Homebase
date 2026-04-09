@@ -31,17 +31,7 @@ export function BottomNav() {
         .single()
       if (!membership) return
 
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const todayISO = today.toISOString()
-
-      const [{ data: taskData }, { count: presetNeedsCount }, { count: shoppingCount }] = await Promise.all([
-        supabase
-          .from('tasks')
-          .select('due_date, repeat_type')
-          .eq('home_id', membership.home_id)
-          .eq('is_completed', false)
-          .eq('is_preset', false),
+      const [{ count: needsDoingCount }, { count: shoppingCount }] = await Promise.all([
         supabase
           .from('tasks')
           .select('*', { count: 'exact', head: true })
@@ -55,13 +45,7 @@ export function BottomNav() {
           .eq('is_purchased', false),
       ])
 
-      // Only count tasks that are actually visible (exclude future repeating tasks)
-      const visibleTasks = (taskData ?? []).filter((t) => {
-        if (t.repeat_type !== 'none' && t.due_date && t.due_date > todayISO) return false
-        return true
-      })
-
-      setBadges({ tasks: visibleTasks.length + (presetNeedsCount ?? 0), shopping: shoppingCount ?? 0 })
+      setBadges({ tasks: needsDoingCount ?? 0, shopping: shoppingCount ?? 0 })
     }
     loadBadges()
   }, [pathname])
