@@ -3,19 +3,20 @@
 import { useState, useEffect } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { createTask, updateTask } from '@/lib/actions/tasks'
-import type { Task, HomeMember } from '@/lib/types'
+import { Star } from 'lucide-react'
+import type { Task } from '@/lib/types'
 
 interface TaskFormProps {
   open: boolean
   onClose: () => void
-  members: HomeMember[]
   editTask?: Task | null
 }
 
-export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
+const POINT_PRESETS = [5, 10, 15, 20, 30, 50]
+
+export function TaskForm({ open, onClose, editTask }: TaskFormProps) {
   const [title, setTitle] = useState(editTask?.title ?? '')
   const [description, setDescription] = useState(editTask?.description ?? '')
-  const [assignedTo, setAssignedTo] = useState(editTask?.assigned_to ?? '')
   const [points, setPoints] = useState(editTask?.points ?? 10)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -26,7 +27,6 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
   useEffect(() => {
     setTitle(editTask?.title ?? '')
     setDescription(editTask?.description ?? '')
-    setAssignedTo(editTask?.assigned_to ?? '')
     setPoints(editTask?.points ?? 10)
     setError('')
   }, [editTask])
@@ -40,14 +40,12 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
         await updateTask(editTask.id, {
           title: title.trim(),
           description: description.trim() || undefined,
-          assigned_to: assignedTo || null,
           points,
         })
       } else {
         await createTask({
           title: title.trim(),
           description: description.trim() || undefined,
-          assigned_to: assignedTo || null,
           due_date: null,
           repeat_type: 'none',
           is_preset: true,
@@ -58,7 +56,6 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
       if (!isEdit) {
         setTitle('')
         setDescription('')
-        setAssignedTo('')
         setPoints(10)
       }
     } catch (err: unknown) {
@@ -98,48 +95,34 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={labelClass}>Assign To</label>
-            <select
-              value={assignedTo}
-              onChange={(e) => setAssignedTo(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">Anyone</option>
-              {members.map((m) => (
-                <option key={m.user_id} value={m.user_id}>
-                  {m.email ?? m.user_id.slice(0, 8)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className={labelClass}>Points</label>
-            <div className="flex items-center gap-2">
+        <div>
+          <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-300 mb-2">
+            <Star className="w-3.5 h-3.5 text-orange-400" />
+            Points
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {POINT_PRESETS.map((p) => (
               <button
+                key={p}
                 type="button"
-                onClick={() => setPoints(Math.max(1, points - 5))}
-                className="w-9 h-9 flex items-center justify-center bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg text-lg font-bold transition-colors"
+                onClick={() => setPoints(p)}
+                className={`px-3.5 py-2 text-sm font-medium rounded-xl transition-all ${
+                  points === p
+                    ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20 scale-105'
+                    : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200'
+                }`}
               >
-                −
+                {p}
               </button>
-              <input
-                type="number"
-                value={points}
-                onChange={(e) => setPoints(Math.max(1, parseInt(e.target.value) || 1))}
-                min={1}
-                className={`${inputClass} text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
-              />
-              <button
-                type="button"
-                onClick={() => setPoints(points + 5)}
-                className="w-9 h-9 flex items-center justify-center bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg text-lg font-bold transition-colors"
-              >
-                +
-              </button>
-            </div>
+            ))}
+            <input
+              type="number"
+              value={POINT_PRESETS.includes(points) ? '' : points}
+              onChange={(e) => setPoints(Math.max(1, parseInt(e.target.value) || 1))}
+              placeholder="Custom"
+              min={1}
+              className="w-20 px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-neutral-50 placeholder-neutral-500 text-sm text-center focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
           </div>
         </div>
 

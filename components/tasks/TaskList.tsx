@@ -99,7 +99,6 @@ export function TaskList({ initialTasks, members, homeId, currentUserId, profile
       <TaskForm
         open={showForm}
         onClose={handleCloseForm}
-        members={members}
         editTask={editTask}
       />
     </>

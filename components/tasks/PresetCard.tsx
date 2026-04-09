@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertCircle, Check, Trash2, Pencil, ChevronRight, Users } from 'lucide-react'
+import { AlertCircle, Check, Trash2, Pencil, ChevronRight, Users, Star } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { Badge } from '@/components/ui/Badge'
 import { Avatar } from '@/components/ui/Avatar'
@@ -108,8 +108,9 @@ export function PresetCard({ task, completions, currentUserId, profiles, members
           </p>
         </div>
 
-        <span className="text-xs font-semibold text-neutral-500 flex-shrink-0">
-          {task.points ?? 10} pts
+        <span className="flex items-center gap-1 px-2 py-0.5 bg-neutral-800 rounded-full flex-shrink-0">
+          <Star className="w-3 h-3 text-orange-400" />
+          <span className="text-xs font-semibold text-neutral-300">{task.points ?? 10}</span>
         </span>
 
         {needsDoing && (
@@ -128,12 +129,10 @@ export function PresetCard({ task, completions, currentUserId, profiles, members
               <Badge variant={needsDoing ? 'orange' : 'default'}>
                 {needsDoing ? 'Needs doing' : 'All good'}
               </Badge>
-              <Badge variant="default">
-                {task.points ?? 10} pts
-              </Badge>
-              {task.assigned_email && (
-                <Avatar email={task.assigned_email} emoji={task.assigned_emoji} size="sm" />
-              )}
+              <span className="flex items-center gap-1 px-2.5 py-1 bg-neutral-800 rounded-full">
+                <Star className="w-3.5 h-3.5 text-orange-400" />
+                <span className="text-xs font-bold text-neutral-200">{task.points ?? 10} pts</span>
+              </span>
             </div>
             {task.description && (
               <p className="text-sm text-neutral-400">{task.description}</p>
