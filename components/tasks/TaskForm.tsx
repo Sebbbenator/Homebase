@@ -16,6 +16,7 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
   const [title, setTitle] = useState(editTask?.title ?? '')
   const [description, setDescription] = useState(editTask?.description ?? '')
   const [assignedTo, setAssignedTo] = useState(editTask?.assigned_to ?? '')
+  const [points, setPoints] = useState(editTask?.points ?? 10)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -31,6 +32,7 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
           title: title.trim(),
           description: description.trim() || undefined,
           assigned_to: assignedTo || null,
+          points,
         })
       } else {
         await createTask({
@@ -40,6 +42,7 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
           due_date: null,
           repeat_type: 'none',
           is_preset: true,
+          points,
         })
       }
       onClose()
@@ -47,6 +50,7 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
         setTitle('')
         setDescription('')
         setAssignedTo('')
+        setPoints(10)
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -85,20 +89,49 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
           />
         </div>
 
-        <div>
-          <label className={labelClass}>Assign To</label>
-          <select
-            value={assignedTo}
-            onChange={(e) => setAssignedTo(e.target.value)}
-            className={inputClass}
-          >
-            <option value="">Anyone</option>
-            {members.map((m) => (
-              <option key={m.user_id} value={m.user_id}>
-                {m.email ?? m.user_id.slice(0, 8)}
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelClass}>Assign To</label>
+            <select
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">Anyone</option>
+              {members.map((m) => (
+                <option key={m.user_id} value={m.user_id}>
+                  {m.email ?? m.user_id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className={labelClass}>Points</label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPoints(Math.max(1, points - 5))}
+                className="w-9 h-9 flex items-center justify-center bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg text-lg font-bold transition-colors"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                value={points}
+                onChange={(e) => setPoints(Math.max(1, parseInt(e.target.value) || 1))}
+                min={1}
+                className={`${inputClass} text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+              />
+              <button
+                type="button"
+                onClick={() => setPoints(points + 5)}
+                className="w-9 h-9 flex items-center justify-center bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg text-lg font-bold transition-colors"
+              >
+                +
+              </button>
+            </div>
+          </div>
         </div>
 
         {error && (

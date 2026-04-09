@@ -31,6 +31,7 @@ export interface Task {
   created_at: string
   is_preset: boolean
   preset_status: PresetStatus
+  points: number
   assigned_email?: string
   created_email?: string
   assigned_emoji?: string

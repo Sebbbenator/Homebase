@@ -108,6 +108,10 @@ export function PresetCard({ task, completions, currentUserId, profiles, members
           </p>
         </div>
 
+        <span className="text-xs font-semibold text-neutral-500 flex-shrink-0">
+          {task.points ?? 10} pts
+        </span>
+
         {needsDoing && (
           <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
         )}
@@ -123,6 +127,9 @@ export function PresetCard({ task, completions, currentUserId, profiles, members
             <div className="flex items-center gap-2 mb-2">
               <Badge variant={needsDoing ? 'orange' : 'default'}>
                 {needsDoing ? 'Needs doing' : 'All good'}
+              </Badge>
+              <Badge variant="default">
+                {task.points ?? 10} pts
               </Badge>
               {task.assigned_email && (
                 <Avatar email={task.assigned_email} emoji={task.assigned_emoji} size="sm" />

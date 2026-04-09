@@ -12,6 +12,7 @@ interface CreateTaskInput {
   due_date?: string | null
   repeat_type?: RepeatType
   is_preset?: boolean
+  points?: number
 }
 
 export async function createTask(input: CreateTaskInput) {
@@ -38,6 +39,7 @@ export async function createTask(input: CreateTaskInput) {
       repeat_type: input.is_preset ? 'none' : (input.repeat_type || 'none'),
       is_preset: input.is_preset || false,
       preset_status: 'idle',
+      points: input.points ?? 10,
       created_by: user.id,
     })
     .select()
@@ -147,6 +149,14 @@ export async function updateTask(taskId: string, input: Partial<CreateTaskInput>
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
+  // Check if points are changing (need to recalculate)
+  const pointsChanging = input.points !== undefined
+  let oldTask = null
+  if (pointsChanging) {
+    const { data } = await supabase.from('tasks').select('points, home_id').eq('id', taskId).single()
+    oldTask = data
+  }
+
   const { data: task, error } = await supabase
     .from('tasks')
     .update({
@@ -155,6 +165,7 @@ export async function updateTask(taskId: string, input: Partial<CreateTaskInput>
       ...(input.assigned_to !== undefined && { assigned_to: input.assigned_to || null }),
       ...(input.due_date !== undefined && { due_date: input.due_date || null }),
       ...(input.repeat_type !== undefined && { repeat_type: input.repeat_type }),
+      ...(input.points !== undefined && { points: input.points }),
     })
     .eq('id', taskId)
     .select()
@@ -176,9 +187,15 @@ export async function updateTask(taskId: string, input: Partial<CreateTaskInput>
       task_id: task.id,
       task_title: task.title,
     })
+
+    // If points changed, recalculate all points for the home
+    if (pointsChanging && oldTask && oldTask.points !== input.points) {
+      await supabase.rpc('recalculate_home_points', { target_home_id: membership.home_id })
+    }
   }
 
   revalidatePath('/dashboard')
+  revalidatePath('/settings')
   return task
 }
 
@@ -266,7 +283,8 @@ export async function completePresetTask(taskId: string, helperId?: string | nul
     .update({ preset_status: 'idle' })
     .eq('id', taskId)
 
-  // Add points
+  // Add points to completer
+  const taskPoints = task.points ?? 10
   const { data: existing } = await supabase
     .from('user_points')
     .select()
@@ -277,12 +295,33 @@ export async function completePresetTask(taskId: string, helperId?: string | nul
   if (existing) {
     await supabase
       .from('user_points')
-      .update({ points: existing.points + 10, updated_at: new Date().toISOString() })
+      .update({ points: existing.points + taskPoints, updated_at: new Date().toISOString() })
       .eq('id', existing.id)
   } else {
     await supabase
       .from('user_points')
-      .insert({ home_id: task.home_id, user_id: user.id, points: 10 })
+      .insert({ home_id: task.home_id, user_id: user.id, points: taskPoints })
+  }
+
+  // Add points to helper too
+  if (helperId) {
+    const { data: helperExisting } = await supabase
+      .from('user_points')
+      .select()
+      .eq('home_id', task.home_id)
+      .eq('user_id', helperId)
+      .single()
+
+    if (helperExisting) {
+      await supabase
+        .from('user_points')
+        .update({ points: helperExisting.points + taskPoints, updated_at: new Date().toISOString() })
+        .eq('id', helperExisting.id)
+    } else {
+      await supabase
+        .from('user_points')
+        .insert({ home_id: task.home_id, user_id: helperId, points: taskPoints })
+    }
   }
 
   // Log activity
