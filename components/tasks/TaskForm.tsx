@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { createTask, updateTask } from '@/lib/actions/tasks'
 import type { Task, HomeMember } from '@/lib/types'
@@ -21,6 +21,15 @@ export function TaskForm({ open, onClose, members, editTask }: TaskFormProps) {
   const [error, setError] = useState('')
 
   const isEdit = !!editTask
+
+  // Sync form state when editTask changes (opening edit modal)
+  useEffect(() => {
+    setTitle(editTask?.title ?? '')
+    setDescription(editTask?.description ?? '')
+    setAssignedTo(editTask?.assigned_to ?? '')
+    setPoints(editTask?.points ?? 10)
+    setError('')
+  }, [editTask])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
