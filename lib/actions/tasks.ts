@@ -235,7 +235,7 @@ export async function flagPresetIdle(taskId: string) {
   revalidatePath('/dashboard')
 }
 
-export async function completePresetTask(taskId: string) {
+export async function completePresetTask(taskId: string, helperId?: string | null) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
@@ -255,6 +255,7 @@ export async function completePresetTask(taskId: string) {
       task_id: taskId,
       home_id: task.home_id,
       completed_by: user.id,
+      ...(helperId ? { helper_id: helperId } : {}),
     })
 
   if (insertError) throw insertError

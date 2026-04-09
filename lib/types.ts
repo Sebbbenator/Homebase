@@ -45,6 +45,9 @@ export interface PresetCompletion {
   completed_at: string
   completed_email?: string
   completed_emoji?: string
+  helper_id?: string | null
+  helper_email?: string
+  helper_emoji?: string
 }
 
 export interface ActivityLog {

@@ -1,20 +1,21 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertCircle, Check, Trash2, Pencil, ChevronRight } from 'lucide-react'
+import { AlertCircle, Check, Trash2, Pencil, ChevronRight, Users } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { Badge } from '@/components/ui/Badge'
 import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/lib/utils'
 import { completePresetTask, flagPresetNeedsDoing, flagPresetIdle, deleteTask } from '@/lib/actions/tasks'
 import { sendPushToHome } from '@/lib/push'
-import type { Task, PresetCompletion, Profile } from '@/lib/types'
+import type { Task, PresetCompletion, Profile, HomeMember } from '@/lib/types'
 
 interface PresetCardProps {
   task: Task
   completions: PresetCompletion[]
   currentUserId: string
   profiles: Record<string, Profile>
+  members: HomeMember[]
   onEdit: (task: Task) => void
   isLast?: boolean
 }
@@ -31,10 +32,14 @@ function formatDate(dateStr: string) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
-export function PresetCard({ task, completions, currentUserId, profiles, onEdit, isLast }: PresetCardProps) {
+export function PresetCard({ task, completions, currentUserId, profiles, members, onEdit, isLast }: PresetCardProps) {
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
+  const [helperId, setHelperId] = useState<string>('')
   const needsDoing = task.preset_status === 'needs_doing'
+
+  // Other members (exclude current user for helper selection)
+  const otherMembers = members.filter((m) => m.user_id !== currentUserId)
 
   async function handleFlag() {
     setLoading(true)
@@ -53,7 +58,8 @@ export function PresetCard({ task, completions, currentUserId, profiles, onEdit,
   async function handleComplete() {
     setLoading(true)
     try {
-      await completePresetTask(task.id)
+      await completePresetTask(task.id, helperId || null)
+      setHelperId('')
     } finally {
       setLoading(false)
     }
@@ -128,35 +134,63 @@ export function PresetCard({ task, completions, currentUserId, profiles, onEdit,
           </div>
 
           {/* Action buttons */}
-          <div className="flex gap-2">
-            {needsDoing ? (
-              <button
-                onClick={handleComplete}
-                disabled={loading}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-medium rounded-xl text-sm transition-colors"
-              >
-                <Check className="w-4 h-4" />
-                Mark as done
-              </button>
-            ) : (
-              <button
-                onClick={handleFlag}
-                disabled={loading}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 font-medium rounded-xl text-sm transition-colors"
-              >
-                <AlertCircle className="w-4 h-4" />
-                Flag as needed
-              </button>
+          <div className="space-y-3">
+            {needsDoing && otherMembers.length > 0 && (
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-medium text-neutral-400 mb-1.5">
+                  <Users className="w-3.5 h-3.5" />
+                  Who helped?
+                </label>
+                <select
+                  value={helperId}
+                  onChange={(e) => setHelperId(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-neutral-50 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+                >
+                  <option value="">No one / just me</option>
+                  {otherMembers.map((m) => {
+                    const profile = profiles[m.user_id]
+                    const name = profile?.display_name || m.email || m.user_id.slice(0, 8)
+                    const emoji = profile?.avatar_emoji || '😀'
+                    return (
+                      <option key={m.user_id} value={m.user_id}>
+                        {emoji} {name}
+                      </option>
+                    )
+                  })}
+                </select>
+              </div>
             )}
-            {needsDoing && (
-              <button
-                onClick={handleFlag}
-                disabled={loading}
-                className="py-2.5 px-4 bg-neutral-800 hover:bg-neutral-700 text-neutral-400 font-medium rounded-xl text-sm transition-colors"
-              >
-                Not needed
-              </button>
-            )}
+
+            <div className="flex gap-2">
+              {needsDoing ? (
+                <button
+                  onClick={handleComplete}
+                  disabled={loading}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-medium rounded-xl text-sm transition-colors"
+                >
+                  <Check className="w-4 h-4" />
+                  Mark as done
+                </button>
+              ) : (
+                <button
+                  onClick={handleFlag}
+                  disabled={loading}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 font-medium rounded-xl text-sm transition-colors"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  Flag as needed
+                </button>
+              )}
+              {needsDoing && (
+                <button
+                  onClick={handleFlag}
+                  disabled={loading}
+                  className="py-2.5 px-4 bg-neutral-800 hover:bg-neutral-700 text-neutral-400 font-medium rounded-xl text-sm transition-colors"
+                >
+                  Not needed
+                </button>
+              )}
+            </div>
           </div>
 
           {/* History */}
@@ -172,10 +206,19 @@ export function PresetCard({ task, completions, currentUserId, profiles, onEdit,
                   const profile = profiles[c.completed_by]
                   const name = c.completed_email || profile?.display_name || c.completed_by.slice(0, 8)
                   const emoji = c.completed_emoji || profile?.avatar_emoji
+                  const helperName = c.helper_email || (c.helper_id ? profiles[c.helper_id]?.display_name : null)
+                  const helperEmoji = c.helper_emoji || (c.helper_id ? profiles[c.helper_id]?.avatar_emoji : null)
                   return (
                     <div key={c.id} className="flex items-center gap-3 py-1.5">
                       <Avatar email={name} emoji={emoji} size="sm" />
-                      <span className="text-sm text-neutral-200 flex-1">{name}</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm text-neutral-200">{name}</span>
+                        {helperName && (
+                          <span className="text-xs text-neutral-500 flex items-center gap-1 mt-0.5">
+                            + {helperEmoji || '😀'} {helperName}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-xs text-neutral-600">{formatDate(c.completed_at)}</span>
                     </div>
                   )

@@ -69,6 +69,8 @@ export default async function DashboardPage() {
     ...c,
     completed_email: nameMap[c.completed_by] || c.completed_by.slice(0, 8),
     completed_emoji: profiles[c.completed_by]?.avatar_emoji,
+    helper_email: c.helper_id ? (nameMap[c.helper_id] || c.helper_id.slice(0, 8)) : undefined,
+    helper_emoji: c.helper_id ? profiles[c.helper_id]?.avatar_emoji : undefined,
   }))
 
   return (

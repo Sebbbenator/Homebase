@@ -87,6 +87,7 @@ export function TaskList({ initialTasks, members, homeId, currentUserId, profile
                   completions={completionsByTask[task.id] ?? []}
                   currentUserId={currentUserId}
                   profiles={profiles}
+                  members={members}
                   onEdit={handleEdit}
                   isLast={i === presetTasks.length - 1}
                 />
