@@ -279,7 +279,7 @@ export function PresetCard({ task, completions, currentUserId, profiles, members
           </div>
 
           {/* Edit / Delete row */}
-          {task.created_by === currentUserId && (
+          {(
             <div className="flex gap-2 pt-2 border-t border-neutral-800">
               <button
                 onClick={() => { setOpen(false); onEdit(task) }}
