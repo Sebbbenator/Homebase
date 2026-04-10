@@ -114,7 +114,7 @@ export function TaskForm({ open, onClose, editTask }: TaskFormProps) {
                     : 'bg-neutral-800 text-neutral-400 border-neutral-700 hover:bg-neutral-700'
                 }`}
               >
-                {c.emoji} {c.label}
+                {c.label}
               </button>
             ))}
           </div>

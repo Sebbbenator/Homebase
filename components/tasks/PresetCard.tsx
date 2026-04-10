@@ -127,8 +127,13 @@ export function PresetCard({ task, completions, currentUserId, profiles, members
           !isLast && 'border-b border-neutral-800/60'
         )}
       >
-        {/* Category emoji */}
-        <span className="text-base flex-shrink-0">{category.emoji}</span>
+        {/* Status dot */}
+        <div
+          className={cn(
+            'w-2.5 h-2.5 rounded-full flex-shrink-0',
+            needsDoing ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]' : 'bg-neutral-700'
+          )}
+        />
 
         {/* Title + subtitle */}
         <div className="flex-1 min-w-0">
@@ -167,7 +172,7 @@ export function PresetCard({ task, completions, currentUserId, profiles, members
                 {needsDoing ? 'Needs doing' : 'All good'}
               </Badge>
               <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${category.color}`}>
-                {category.emoji} {category.label}
+                {category.label}
               </span>
               <span className="flex items-center gap-1 px-2.5 py-1 bg-neutral-800 rounded-full">
                 <Star className="w-3.5 h-3.5 text-orange-400" />

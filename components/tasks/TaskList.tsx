@@ -105,7 +105,7 @@ export function TaskList({ initialTasks, members, homeId, currentUserId, profile
                   : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
               }`}
             >
-              {c.emoji} {c.label}
+              {c.label}
             </button>
           ))}
         </div>
