@@ -60,6 +60,7 @@ export default async function DashboardPage() {
     is_preset: t.is_preset ?? false,
     preset_status: t.preset_status ?? 'idle',
     points: t.points ?? 10,
+    category: t.category ?? 'other',
     assigned_email: t.assigned_to ? nameMap[t.assigned_to] : undefined,
     created_email: nameMap[t.created_by],
     assigned_emoji: t.assigned_to ? profiles[t.assigned_to]?.avatar_emoji : undefined,

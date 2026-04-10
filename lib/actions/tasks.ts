@@ -13,6 +13,7 @@ interface CreateTaskInput {
   repeat_type?: RepeatType
   is_preset?: boolean
   points?: number
+  category?: string
 }
 
 export async function createTask(input: CreateTaskInput) {
@@ -40,6 +41,7 @@ export async function createTask(input: CreateTaskInput) {
       is_preset: input.is_preset || false,
       preset_status: 'idle',
       points: input.points ?? 10,
+      category: input.category || 'other',
       created_by: user.id,
     })
     .select()
@@ -166,6 +168,7 @@ export async function updateTask(taskId: string, input: Partial<CreateTaskInput>
       ...(input.due_date !== undefined && { due_date: input.due_date || null }),
       ...(input.repeat_type !== undefined && { repeat_type: input.repeat_type }),
       ...(input.points !== undefined && { points: input.points }),
+      ...(input.category !== undefined && { category: input.category }),
     })
     .eq('id', taskId)
     .select()

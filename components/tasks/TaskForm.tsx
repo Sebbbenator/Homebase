@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { createTask, updateTask } from '@/lib/actions/tasks'
 import { Star } from 'lucide-react'
+import { CATEGORIES } from '@/lib/categories'
 import type { Task } from '@/lib/types'
 
 interface TaskFormProps {
@@ -18,16 +19,17 @@ export function TaskForm({ open, onClose, editTask }: TaskFormProps) {
   const [title, setTitle] = useState(editTask?.title ?? '')
   const [description, setDescription] = useState(editTask?.description ?? '')
   const [points, setPoints] = useState(editTask?.points ?? 10)
+  const [category, setCategory] = useState(editTask?.category ?? 'other')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const isEdit = !!editTask
 
-  // Sync form state when editTask changes (opening edit modal)
   useEffect(() => {
     setTitle(editTask?.title ?? '')
     setDescription(editTask?.description ?? '')
     setPoints(editTask?.points ?? 10)
+    setCategory(editTask?.category ?? 'other')
     setError('')
   }, [editTask])
 
@@ -41,6 +43,7 @@ export function TaskForm({ open, onClose, editTask }: TaskFormProps) {
           title: title.trim(),
           description: description.trim() || undefined,
           points,
+          category,
         })
       } else {
         await createTask({
@@ -50,6 +53,7 @@ export function TaskForm({ open, onClose, editTask }: TaskFormProps) {
           repeat_type: 'none',
           is_preset: true,
           points,
+          category,
         })
       }
       onClose()
@@ -57,6 +61,7 @@ export function TaskForm({ open, onClose, editTask }: TaskFormProps) {
         setTitle('')
         setDescription('')
         setPoints(10)
+        setCategory('other')
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -93,6 +98,26 @@ export function TaskForm({ open, onClose, editTask }: TaskFormProps) {
             rows={2}
             className={`${inputClass} resize-none`}
           />
+        </div>
+
+        <div>
+          <label className={labelClass}>Category</label>
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setCategory(c.id)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-xl border transition-all ${
+                  category === c.id
+                    ? c.color + ' scale-105'
+                    : 'bg-neutral-800 text-neutral-400 border-neutral-700 hover:bg-neutral-700'
+                }`}
+              >
+                {c.emoji} {c.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div>

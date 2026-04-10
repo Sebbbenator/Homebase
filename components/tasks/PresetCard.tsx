@@ -6,6 +6,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Badge } from '@/components/ui/Badge'
 import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/lib/utils'
+import { getCategory } from '@/lib/categories'
 import { completePresetTask, flagPresetNeedsDoing, flagPresetIdle, deleteTask } from '@/lib/actions/tasks'
 import { sendPushToHome } from '@/lib/push'
 import type { Task, PresetCompletion, Profile, HomeMember } from '@/lib/types'
@@ -18,6 +19,36 @@ interface PresetCardProps {
   members: HomeMember[]
   onEdit: (task: Task) => void
   isLast?: boolean
+}
+
+const CONFETTI_COLORS = ['#f97316', '#fb923c', '#fbbf24', '#34d399', '#60a5fa', '#f472b6']
+
+function Confetti({ show }: { show: boolean }) {
+  if (!show) return null
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[100]">
+      {Array.from({ length: 40 }).map((_, i) => {
+        const left = 5 + Math.random() * 90
+        const delay = Math.random() * 0.5
+        const color = CONFETTI_COLORS[i % CONFETTI_COLORS.length]
+        const size = 6 + Math.random() * 8
+        return (
+          <span
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              left: `${left}%`,
+              top: '40%',
+              width: size,
+              height: size,
+              backgroundColor: color,
+              animation: `confetti-pop 0.8s ${delay}s ease-out both`,
+            }}
+          />
+        )
+      })}
+    </div>
+  )
 }
 
 function formatDate(dateStr: string) {
@@ -36,9 +67,10 @@ export function PresetCard({ task, completions, currentUserId, profiles, members
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
   const [helperId, setHelperId] = useState<string>('')
+  const [showConfetti, setShowConfetti] = useState(false)
   const needsDoing = task.preset_status === 'needs_doing'
+  const category = getCategory(task.category ?? 'other')
 
-  // Other members (exclude current user for helper selection)
   const otherMembers = members.filter((m) => m.user_id !== currentUserId)
 
   async function handleFlag() {
@@ -60,6 +92,11 @@ export function PresetCard({ task, completions, currentUserId, profiles, members
     try {
       await completePresetTask(task.id, helperId || null)
       setHelperId('')
+      setShowConfetti(true)
+      setTimeout(() => {
+        setShowConfetti(false)
+        setOpen(false)
+      }, 1200)
     } finally {
       setLoading(false)
     }
@@ -80,6 +117,8 @@ export function PresetCard({ task, completions, currentUserId, profiles, members
 
   return (
     <>
+      <Confetti show={showConfetti} />
+
       {/* Row — tap to open detail sheet */}
       <button
         onClick={() => setOpen(true)}
@@ -88,17 +127,15 @@ export function PresetCard({ task, completions, currentUserId, profiles, members
           !isLast && 'border-b border-neutral-800/60'
         )}
       >
-        {/* Status dot */}
-        <div
-          className={cn(
-            'w-2.5 h-2.5 rounded-full flex-shrink-0',
-            needsDoing ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]' : 'bg-neutral-700'
-          )}
-        />
+        {/* Category emoji */}
+        <span className="text-base flex-shrink-0">{category.emoji}</span>
 
         {/* Title + subtitle */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-neutral-100 truncate">{task.title}</p>
+          <p className={cn(
+            'text-sm font-medium truncate',
+            needsDoing ? 'text-orange-300' : 'text-neutral-100'
+          )}>{task.title}</p>
           <p className="text-xs text-neutral-500 mt-0.5 truncate">
             {needsDoing
               ? 'Needs to be done'
@@ -114,7 +151,7 @@ export function PresetCard({ task, completions, currentUserId, profiles, members
         </span>
 
         {needsDoing && (
-          <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
+          <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse flex-shrink-0" />
         )}
 
         <ChevronRight className="w-4 h-4 text-neutral-600 flex-shrink-0" />
@@ -125,10 +162,13 @@ export function PresetCard({ task, completions, currentUserId, profiles, members
         <div className="space-y-5">
           {/* Status + description */}
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <Badge variant={needsDoing ? 'orange' : 'default'}>
                 {needsDoing ? 'Needs doing' : 'All good'}
               </Badge>
+              <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${category.color}`}>
+                {category.emoji} {category.label}
+              </span>
               <span className="flex items-center gap-1 px-2.5 py-1 bg-neutral-800 rounded-full">
                 <Star className="w-3.5 h-3.5 text-orange-400" />
                 <span className="text-xs font-bold text-neutral-200">{task.points ?? 10} pts</span>
