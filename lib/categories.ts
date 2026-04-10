@@ -1,4 +1,5 @@
 export const CATEGORIES = [
+  { id: 'common', label: 'Fællesområder', color: 'bg-orange-500/15 text-orange-400 border-orange-500/30' },
   { id: 'kitchen', label: 'Køkken', color: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
   { id: 'bathroom', label: 'Badeværelse', color: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
   { id: 'living', label: 'Stue', color: 'bg-purple-500/15 text-purple-400 border-purple-500/30' },
