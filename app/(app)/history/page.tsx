@@ -36,9 +36,10 @@ export default async function HistoryPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-6">
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-neutral-50">History</h1>
-        <p className="text-xs text-neutral-500 mt-0.5">Recent activity in your home</p>
+      <div className="relative mb-6 pt-2">
+        <div className="absolute -top-4 -right-4 w-40 h-40 rounded-full bg-blue-500/6 blur-3xl pointer-events-none" />
+        <h1 className="text-3xl font-bold text-white tracking-tight">Aktivitet</h1>
+        <p className="text-sm text-zinc-500 mt-1 font-medium">Seneste aktivitet i jeres hjem</p>
       </div>
       <ActivityFeed logs={enriched} />
     </div>

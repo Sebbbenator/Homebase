@@ -255,7 +255,7 @@ export async function flagPresetIdle(taskId: string) {
   revalidatePath('/dashboard')
 }
 
-export async function completePresetTask(taskId: string, helperId?: string | null) {
+export async function completePresetTask(taskId: string, helperIds?: string[]) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
@@ -268,6 +268,8 @@ export async function completePresetTask(taskId: string, helperId?: string | nul
 
   if (fetchError || !task) throw new Error('Task not found')
 
+  const helpers = (helperIds ?? []).filter(Boolean)
+
   // Record the completion
   const { error: insertError } = await supabase
     .from('preset_completions')
@@ -275,7 +277,9 @@ export async function completePresetTask(taskId: string, helperId?: string | nul
       task_id: taskId,
       home_id: task.home_id,
       completed_by: user.id,
-      ...(helperId ? { helper_id: helperId } : {}),
+      helper_ids: helpers,
+      // keep legacy helper_id for backwards compat
+      ...(helpers.length > 0 ? { helper_id: helpers[0] } : {}),
     })
 
   if (insertError) throw insertError
@@ -286,46 +290,34 @@ export async function completePresetTask(taskId: string, helperId?: string | nul
     .update({ preset_status: 'idle' })
     .eq('id', taskId)
 
-  // Add points to completer
-  const taskPoints = task.points ?? 10
-  const { data: existing } = await supabase
-    .from('user_points')
-    .select()
-    .eq('home_id', task.home_id)
-    .eq('user_id', user.id)
-    .single()
-
-  if (existing) {
-    await supabase
-      .from('user_points')
-      .update({ points: existing.points + taskPoints, updated_at: new Date().toISOString() })
-      .eq('id', existing.id)
-  } else {
-    await supabase
-      .from('user_points')
-      .insert({ home_id: task.home_id, user_id: user.id, points: taskPoints })
-  }
-
-  // Add points to helper too
-  if (helperId) {
-    const { data: helperExisting } = await supabase
+  // Helper: upsert points for a user
+  async function awardPoints(userId: string, points: number) {
+    const { data: existing } = await supabase
       .from('user_points')
       .select()
       .eq('home_id', task.home_id)
-      .eq('user_id', helperId)
+      .eq('user_id', userId)
       .single()
 
-    if (helperExisting) {
+    if (existing) {
       await supabase
         .from('user_points')
-        .update({ points: helperExisting.points + taskPoints, updated_at: new Date().toISOString() })
-        .eq('id', helperExisting.id)
+        .update({ points: existing.points + points, updated_at: new Date().toISOString() })
+        .eq('id', existing.id)
     } else {
       await supabase
         .from('user_points')
-        .insert({ home_id: task.home_id, user_id: helperId, points: taskPoints })
+        .insert({ home_id: task.home_id, user_id: userId, points })
     }
   }
+
+  const taskPoints = task.points ?? 10
+
+  // Award points to completer and all helpers
+  await Promise.all([
+    awardPoints(user.id, taskPoints),
+    ...helpers.map((id) => awardPoints(id, taskPoints)),
+  ])
 
   // Log activity
   await supabase.from('activity_logs').insert({

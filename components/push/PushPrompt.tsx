@@ -17,7 +17,6 @@ export function PushPrompt() {
 
     setPermission(Notification.permission)
 
-    // Check if already subscribed
     registerServiceWorker().then(async (reg) => {
       if (!reg) return
       const sub = await reg.pushManager.getSubscription()
@@ -52,17 +51,15 @@ export function PushPrompt() {
 
   if (!supported) {
     return (
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-neutral-800 flex items-center justify-center">
-            <BellOff className="w-4 h-4 text-neutral-500" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-neutral-300">Notifications not supported</p>
-            <p className="text-xs text-neutral-500 mt-0.5">
-              Open in Safari and add to Home Screen to enable notifications.
-            </p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full bg-white/[0.04] flex items-center justify-center flex-shrink-0">
+          <BellOff className="w-4 h-4 text-zinc-500" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-zinc-300">Notifikationer understøttes ikke</p>
+          <p className="text-xs text-zinc-600 mt-0.5">
+            Åbn i Safari og tilføj til hjemmeskærmen for at aktivere notifikationer.
+          </p>
         </div>
       </div>
     )
@@ -70,50 +67,46 @@ export function PushPrompt() {
 
   if (permission === 'denied') {
     return (
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-red-500/10 flex items-center justify-center">
-            <BellOff className="w-4 h-4 text-red-400" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-neutral-300">Notifications blocked</p>
-            <p className="text-xs text-neutral-500 mt-0.5">
-              Go to your device Settings to re-enable notifications for this app.
-            </p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+          <BellOff className="w-4 h-4 text-red-400" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-zinc-300">Notifikationer blokeret</p>
+          <p className="text-xs text-zinc-600 mt-0.5">
+            Gå til enhedsindstillingerne for at genaktivere notifikationer for denne app.
+          </p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4">
-      <div className="flex items-center gap-3">
-        <div className={`w-9 h-9 rounded-full flex items-center justify-center ${subscribed ? 'bg-green-500/10' : 'bg-orange-500/10'}`}>
-          <Bell className={`w-4 h-4 ${subscribed ? 'text-green-400' : 'text-orange-400'}`} />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-medium text-neutral-300">
-            {subscribed ? 'Notifications enabled' : 'Enable notifications'}
-          </p>
-          <p className="text-xs text-neutral-500 mt-0.5">
-            {subscribed
-              ? 'You\'ll be notified when a preset task needs doing.'
-              : 'Get notified when someone flags a task.'}
-          </p>
-        </div>
-        <button
-          onClick={subscribed ? handleUnsubscribe : handleSubscribe}
-          disabled={loading}
-          className={`px-3.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-            subscribed
-              ? 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
-              : 'bg-orange-600 text-white hover:bg-orange-500'
-          }`}
-        >
-          {loading ? '...' : subscribed ? 'Turn off' : 'Turn on'}
-        </button>
+    <div className="flex items-center gap-3">
+      <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${subscribed ? 'bg-green-500/10' : 'bg-orange-500/10'}`}>
+        <Bell className={`w-4 h-4 ${subscribed ? 'text-green-400' : 'text-orange-400'}`} />
       </div>
+      <div className="flex-1">
+        <p className="text-sm font-semibold text-zinc-300">
+          {subscribed ? 'Notifikationer aktiveret' : 'Aktiver notifikationer'}
+        </p>
+        <p className="text-xs text-zinc-600 mt-0.5">
+          {subscribed
+            ? 'Du får besked, når en fast opgave skal udføres.'
+            : 'Bliv underrettet, når nogen markerer en opgave.'}
+        </p>
+      </div>
+      <button
+        onClick={subscribed ? handleUnsubscribe : handleSubscribe}
+        disabled={loading}
+        className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-colors flex-shrink-0 ${
+          subscribed
+            ? 'bg-white/[0.05] text-zinc-400 hover:bg-white/[0.08]'
+            : 'bg-orange-600 text-white hover:bg-orange-500'
+        }`}
+      >
+        {loading ? '...' : subscribed ? 'Slå fra' : 'Slå til'}
+      </button>
     </div>
   )
 }

@@ -9,7 +9,12 @@
       "Bash(npm install:*)",
       "Bash(npm run:*)",
       "Bash(npx web-push:*)",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(npx next:*)",
+      "Bash(./node_modules/.bin/next build:*)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(ls \"/Users/sebastian/Desktop/kode./egne-projekter/Homebase/\"*.env*)",
+      "Bash(ls \"/Users/sebastian/Desktop/kode./egne-projekter/Homebase/.env\"*)"
     ]
   }
 }

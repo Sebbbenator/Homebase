@@ -73,10 +73,15 @@ export default async function DashboardPage() {
     completed_emoji: profiles[c.completed_by]?.avatar_emoji,
     helper_email: c.helper_id ? (nameMap[c.helper_id] || c.helper_id.slice(0, 8)) : undefined,
     helper_emoji: c.helper_id ? profiles[c.helper_id]?.avatar_emoji : undefined,
+    helpers: (c.helper_ids ?? []).map((id: string) => ({
+      id,
+      email: nameMap[id] || id.slice(0, 8),
+      emoji: profiles[id]?.avatar_emoji,
+    })),
   }))
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6">
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-4">
       <TaskList
         initialTasks={tasks}
         members={members}

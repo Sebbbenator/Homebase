@@ -6,23 +6,23 @@ import { Modal } from './Modal'
 
 const EMOJI_GROUPS = [
   {
-    label: 'Faces',
+    label: 'Ansigter',
     emojis: ['😀', '😎', '🤩', '😇', '🥳', '😤', '🤓', '😏', '🥰', '🤗', '😴', '🫡', '🤠', '👻', '🤖', '👽'],
   },
   {
-    label: 'Animals',
+    label: 'Dyr',
     emojis: ['🐶', '🐱', '🐻', '🦊', '🐼', '🐨', '🦁', '🐸', '🐧', '🦄', '🐙', '🦋', '🐝', '🐳', '🦈', '🦉'],
   },
   {
-    label: 'Food',
+    label: 'Mad',
     emojis: ['🍕', '🍔', '🌮', '🍣', '🍩', '🧁', '🍉', '🥑', '🍟', '☕', '🧋', '🍪', '🌶️', '🍑', '🫐', '🥐'],
   },
   {
-    label: 'Activities',
+    label: 'Aktiviteter',
     emojis: ['⚽', '🎮', '🎸', '🎨', '🏄', '🚀', '🎯', '🏆', '💎', '🔥', '⭐', '🌈', '🎪', '🎭', '🛹', '🏔️'],
   },
   {
-    label: 'Nature',
+    label: 'Natur',
     emojis: ['🌸', '🌻', '🍀', '🌙', '☀️', '🌊', '❄️', '🌵', '🍄', '🪴', '🌴', '🦩', '🐚', '🪸', '🌺', '🍁'],
   },
 ]
@@ -43,7 +43,7 @@ export function EmojiPicker({ open, onClose, onSelect, current }: EmojiPickerPro
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Choose Your Avatar">
+    <Modal open={open} onClose={onClose} title="Vælg din avatar">
       <div className="space-y-4 max-h-[60vh] overflow-y-auto">
         {EMOJI_GROUPS.map((group) => (
           <div key={group.label}>
@@ -75,13 +75,13 @@ export function EmojiPicker({ open, onClose, onSelect, current }: EmojiPickerPro
           onClick={onClose}
           className="flex-1 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-medium rounded-xl text-sm transition-colors"
         >
-          Cancel
+          Annuller
         </button>
         <button
           onClick={handleConfirm}
           className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-medium rounded-xl text-sm transition-colors"
         >
-          Save
+          Gem
         </button>
       </div>
     </Modal>

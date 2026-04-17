@@ -64,7 +64,7 @@ export function TaskForm({ open, onClose, editTask }: TaskFormProps) {
         setCategory('other')
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : 'Der opstod en fejl')
     } finally {
       setLoading(false)
     }
@@ -75,33 +75,33 @@ export function TaskForm({ open, onClose, editTask }: TaskFormProps) {
   const labelClass = 'block text-sm font-medium text-neutral-300 mb-1.5'
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Task' : 'New Task'}>
+    <Modal open={open} onClose={onClose} title={isEdit ? 'Rediger opgave' : 'Ny opgave'}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
-          <label className={labelClass}>Title *</label>
+          <label className={labelClass}>Titel *</label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            placeholder="What needs to be done?"
+            placeholder="Hvad skal gøres?"
             className={inputClass}
             autoFocus
           />
         </div>
 
         <div>
-          <label className={labelClass}>Description</label>
+          <label className={labelClass}>Beskrivelse</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional details..."
+            placeholder="Valgfrie detaljer..."
             rows={2}
             className={`${inputClass} resize-none`}
           />
         </div>
 
         <div>
-          <label className={labelClass}>Category</label>
+          <label className={labelClass}>Kategori</label>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((c) => (
               <button
@@ -123,7 +123,7 @@ export function TaskForm({ open, onClose, editTask }: TaskFormProps) {
         <div>
           <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-300 mb-2">
             <Star className="w-3.5 h-3.5 text-orange-400" />
-            Points
+            Point
           </label>
           <div className="flex flex-wrap gap-2">
             {POINT_PRESETS.map((p) => (
@@ -144,7 +144,7 @@ export function TaskForm({ open, onClose, editTask }: TaskFormProps) {
               type="number"
               value={POINT_PRESETS.includes(points) ? '' : points}
               onChange={(e) => setPoints(Math.max(1, parseInt(e.target.value) || 1))}
-              placeholder="Custom"
+              placeholder="Andet"
               min={1}
               className="w-20 px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-neutral-50 placeholder-neutral-500 text-sm text-center focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
@@ -161,14 +161,14 @@ export function TaskForm({ open, onClose, editTask }: TaskFormProps) {
             onClick={onClose}
             className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-medium rounded-xl text-sm transition-colors"
           >
-            Cancel
+            Annuller
           </button>
           <button
             type="submit"
             disabled={loading}
             className="flex-1 py-3 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-medium rounded-xl text-sm transition-colors"
           >
-            {loading ? 'Saving...' : isEdit ? 'Update' : 'Create Task'}
+            {loading ? 'Gemmer...' : isEdit ? 'Opdater' : 'Opret opgave'}
           </button>
         </div>
       </form>

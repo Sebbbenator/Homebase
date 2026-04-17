@@ -6,8 +6,8 @@ import './globals.css'
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
 
 export const metadata: Metadata = {
-  title: 'HomeBase — Household Manager',
-  description: 'Manage tasks, shopping, and activities with your household.',
+  title: 'HomeBase — Boligadministration',
+  description: 'Administrer opgaver, indkøb og aktiviteter med din husstand.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0f0f0f',
+  themeColor: '#0c0c10',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -28,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className="min-h-full bg-neutral-950 text-neutral-50 antialiased font-sans">
+      <body className="min-h-full bg-[#0c0c10] text-neutral-50 antialiased font-sans">
         <ServiceWorkerRegistrar />
         {children}
       </body>

@@ -19,14 +19,26 @@ export function format(date: Date): string {
   return date.toISOString().split('T')[0]
 }
 
+const TZ = 'Europe/Copenhagen'
+
+/** Returns the local date string (YYYY-MM-DD) in Copenhagen time */
+function cphDateStr(date: Date): string {
+  return date.toLocaleDateString('en-CA', { timeZone: TZ }) // en-CA gives YYYY-MM-DD
+}
+
+/** Returns midnight (00:00:00) of a Copenhagen calendar day as a UTC Date */
+function cphMidnight(date: Date): Date {
+  return new Date(cphDateStr(date) + 'T00:00:00')
+}
+
 export function formatDate(dateStr: string): string {
   const date = new Date(dateStr)
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return date.toLocaleDateString('da-DK', { timeZone: TZ, month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 export function formatTime(dateStr: string): string {
   const date = new Date(dateStr)
-  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  return date.toLocaleTimeString('da-DK', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
 }
 
 export function formatRelative(dateStr: string): string {
@@ -35,12 +47,17 @@ export function formatRelative(dateStr: string): string {
   const diff = now.getTime() - date.getTime()
   const mins = Math.floor(diff / 60000)
   const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
 
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  if (hours < 24) return `${hours}h ago`
-  if (days < 7) return `${days}d ago`
+  if (mins < 1) return 'lige nu'
+  if (mins < 60) return `${mins}m siden`
+  if (hours < 24) return `${hours}t siden`
+
+  // Compare calendar days in Copenhagen timezone
+  const daysDiff = Math.round(
+    (cphMidnight(now).getTime() - cphMidnight(date).getTime()) / 86400000
+  )
+  if (daysDiff === 1) return 'i går'
+  if (daysDiff < 7) return `${daysDiff}d siden`
   return formatDate(dateStr)
 }
 
@@ -75,8 +92,10 @@ export function smartDueDate(dueDateStr: string | null): { label: string; color:
 }
 
 export function getGreeting(): string {
-  const h = new Date().getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 18) return 'Good afternoon'
-  return 'Good evening'
+  const h = parseInt(
+    new Date().toLocaleString('en-US', { timeZone: TZ, hour: '2-digit', hour12: false })
+  )
+  if (h < 12) return 'God morgen'
+  if (h < 18) return 'God eftermiddag'
+  return 'God aften'
 }

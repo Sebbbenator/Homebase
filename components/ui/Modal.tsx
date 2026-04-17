@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ModalProps {
@@ -13,16 +12,26 @@ interface ModalProps {
   className?: string
 }
 
-export function Modal({ open, onClose, title, children, className }: ModalProps) {
+export function Modal({ open, onClose, children, className }: ModalProps) {
   const [mounted, setMounted] = useState(false)
+  const [visible, setVisible] = useState(false)
 
   useEffect(() => { setMounted(true) }, [])
 
+  // Animate in/out
+  useEffect(() => {
+    if (open) {
+      // Small delay so the CSS transition fires after mount
+      const t = setTimeout(() => setVisible(true), 10)
+      return () => clearTimeout(t)
+    } else {
+      setVisible(false)
+    }
+  }, [open])
+
   useEffect(() => {
     if (!open) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [open, onClose])
@@ -33,7 +42,8 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  if (!open || !mounted) return null
+  if (!mounted) return null
+  if (!open && !visible) return null
 
   return createPortal(
     <>
@@ -42,73 +52,54 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
         onClick={onClose}
         style={{
           position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
+          inset: 0,
           zIndex: 50,
-          backgroundColor: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(4px)',
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          backdropFilter: 'blur(6px)',
+          transition: 'opacity 0.3s ease',
+          opacity: visible ? 1 : 0,
         }}
       />
-      {/* Centering wrapper — full screen flex */}
+
+      {/* Bottom sheet */}
       <div
         style={{
           position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           zIndex: 51,
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'center',
-          padding: '16px',
           pointerEvents: 'none',
         }}
       >
-      {/* Panel */}
-      <div
-        className={cn(className)}
-        style={{
-          width: '100%',
-          maxWidth: '28rem',
-          maxHeight: 'calc(100vh - 32px)',
-          display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: '#171717',
-          border: '1px solid #262626',
-          borderRadius: '1rem',
-          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-          animation: 'modal-slide-up 0.2s ease-out',
-          pointerEvents: 'auto',
-        }}
-      >
-        {title && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '20px 20px 16px 20px',
-              borderBottom: '1px solid #262626',
-              flexShrink: 0,
-            }}
-          >
-            <h2 style={{ fontSize: '1rem', fontWeight: 600, color: '#fafafa' }}>{title}</h2>
-            <button
-              onClick={onClose}
-              style={{
-                padding: '6px',
-                borderRadius: '8px',
-                color: '#a3a3a3',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              <X style={{ width: 16, height: 16 }} />
-            </button>
+        <div
+          className={cn('w-full max-w-lg', className)}
+          style={{
+            backgroundColor: '#16161e',
+            borderRadius: '28px 28px 0 0',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: 'none',
+            boxShadow: '0 -20px 60px rgba(0,0,0,0.5)',
+            maxHeight: '92dvh',
+            display: 'flex',
+            flexDirection: 'column',
+            pointerEvents: 'auto',
+            transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
+            transform: visible ? 'translateY(0)' : 'translateY(100%)',
+          }}
+        >
+          {/* Drag handle */}
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4, flexShrink: 0 }}>
+            <div style={{ width: 36, height: 4, borderRadius: 99, backgroundColor: 'rgba(255,255,255,0.12)' }} />
           </div>
-        )}
-        <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
-          {children}
+
+          {/* Scrollable content */}
+          <div style={{ overflowY: 'auto', flex: 1, padding: '8px 20px 40px 20px' }}>
+            {children}
+          </div>
         </div>
-      </div>
       </div>
     </>,
     document.body

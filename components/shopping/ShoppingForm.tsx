@@ -27,21 +27,21 @@ export function ShoppingForm() {
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="Add item..."
-        className="flex-1 px-3.5 py-2.5 bg-neutral-900 border border-neutral-800 rounded-xl text-neutral-50 placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+        placeholder="Tilføj vare..."
+        className="flex-1 px-4 py-3 bg-[#16161e] border border-white/[0.06] rounded-2xl text-white placeholder-zinc-600 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition"
       />
       <input
         value={quantity}
         onChange={(e) => setQuantity(e.target.value)}
-        placeholder="Qty"
-        className="w-20 px-3 py-2.5 bg-neutral-900 border border-neutral-800 rounded-xl text-neutral-50 placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+        placeholder="Antal"
+        className="w-20 px-3 py-3 bg-[#16161e] border border-white/[0.06] rounded-2xl text-white placeholder-zinc-600 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition"
       />
       <button
         type="submit"
         disabled={loading || !name.trim()}
-        className="w-10 h-10 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:opacity-40 flex items-center justify-center transition-colors flex-shrink-0"
+        className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 disabled:opacity-40 flex items-center justify-center transition-all shadow-lg shadow-orange-600/20 active:scale-95 flex-shrink-0"
       >
-        <Plus className="w-5 h-5 text-white" />
+        <Plus className="w-5 h-5 text-white" strokeWidth={2.5} />
       </button>
     </form>
   )

@@ -23,7 +23,7 @@ export default async function ShoppingPage() {
     .order('created_at', { ascending: false })
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6">
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-4">
       <ShoppingList
         initialItems={(items ?? []) as ShoppingItem[]}
         homeId={membership.home_id}
