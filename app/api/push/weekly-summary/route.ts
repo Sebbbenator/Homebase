@@ -44,10 +44,12 @@ function opgave(n: number): string {
 }
 
 export async function POST(req: NextRequest) {
-  // Verify cron secret
-  const auth = req.headers.get('authorization') ?? ''
+  // Verify cron secret — accept Vercel's built-in cron header or a Bearer token
   const secret = process.env.CRON_SECRET
-  if (!secret || auth !== `Bearer ${secret}`) {
+  const auth = req.headers.get('authorization') ?? ''
+  const isVercelCron = req.headers.get('x-vercel-cron') === '1'
+  const isBearerOk = !!secret && auth === `Bearer ${secret}`
+  if (!isVercelCron && !isBearerOk) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
