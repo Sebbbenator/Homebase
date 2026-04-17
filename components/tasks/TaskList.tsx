@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { PresetCard } from './PresetCard'
 import { TaskForm } from './TaskForm'
+import { WeeklySummaryModal } from './WeeklySummaryModal'
 import { useRealtimeTasks } from '@/lib/hooks/useRealtimeTasks'
 import { Plus, ListTodo, AlertCircle } from 'lucide-react'
 import { getGreeting } from '@/lib/utils'
@@ -61,6 +62,8 @@ export function TaskList({ initialTasks, members, homeId, currentUserId, profile
 
   return (
     <>
+      <WeeklySummaryModal />
+
       {/* Header */}
       <div className="relative mb-6 pt-2">
         {/* Subtle background glow */}
