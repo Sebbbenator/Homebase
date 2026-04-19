@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { LayoutDashboard, ShoppingCart, Clock, Settings } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
 
 export function BottomNav() {
   const pathname = usePathname()
+  const router = useRouter()
   const [badges, setBadges] = useState<{ tasks: number; shopping: number }>({ tasks: 0, shopping: 0 })
 
   useEffect(() => {
@@ -60,6 +61,9 @@ export function BottomNav() {
             <Link
               key={href}
               href={href}
+              prefetch
+              onTouchStart={() => router.prefetch(href)}
+              onMouseEnter={() => router.prefetch(href)}
               className={cn(
                 'relative flex flex-col items-center justify-center flex-1 py-3 gap-1 transition-all duration-200',
                 active ? 'text-orange-400' : 'text-zinc-600 hover:text-zinc-400'

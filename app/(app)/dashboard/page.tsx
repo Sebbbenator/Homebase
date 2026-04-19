@@ -1,45 +1,35 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getCurrentHome } from '@/lib/actions/session'
 import { TaskList } from '@/components/tasks/TaskList'
 import { getProfilesMap } from '@/lib/actions/profile'
 import { getPresetCompletions } from '@/lib/actions/tasks'
-import type { Task, HomeMember, Profile, PresetCompletion } from '@/lib/types'
+import type { Task, HomeMember, PresetCompletion } from '@/lib/types'
 
 export default async function DashboardPage() {
+  const home = await getCurrentHome()
+  if (!home) redirect('/dashboard')
+
+  const { user, homeId } = home
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
-  const { data: membership } = await supabase
-    .from('home_members')
-    .select('home_id')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!membership) redirect('/dashboard')
-
-  const homeId = membership.home_id
-
-  // Fetch tasks
-  const { data: tasksRaw } = await supabase
-    .from('tasks')
-    .select()
-    .eq('home_id', homeId)
-    .order('created_at', { ascending: false })
-
-  // Fetch all members
-  const { data: membersRaw } = await supabase
-    .from('home_members')
-    .select('id, user_id, joined_at')
-    .eq('home_id', homeId)
-
-  const memberIds = (membersRaw ?? []).map((m) => m.user_id)
-
-  // Fetch profiles for all members + preset completions
-  const [profiles, completionsRaw] = await Promise.all([
-    getProfilesMap(memberIds),
+  // Fire independent queries in parallel. Profiles lookup chains after
+  // members since it needs the member IDs.
+  const [{ data: tasksRaw }, { data: membersRaw }, completionsRaw] = await Promise.all([
+    supabase
+      .from('tasks')
+      .select()
+      .eq('home_id', homeId)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('home_members')
+      .select('id, user_id, joined_at')
+      .eq('home_id', homeId),
     getPresetCompletions(homeId),
   ])
+
+  const memberIds = (membersRaw ?? []).map((m) => m.user_id)
+  const profiles = await getProfilesMap(memberIds)
 
   const members: HomeMember[] = (membersRaw ?? []).map((m) => ({
     id: m.id,

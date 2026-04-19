@@ -1,22 +1,16 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentHome, getSessionUser } from '@/lib/actions/session'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { HomeSetup } from '@/components/layout/HomeSetup'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
+  const user = await getSessionUser()
   if (!user) redirect('/login')
 
-  // Check if user has a home
-  const { data: membership } = await supabase
-    .from('home_members')
-    .select('home_id')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!membership) {
+  // Dedupes with any page-level `getCurrentHome()` call in the same request
+  // thanks to React's `cache()`.
+  const home = await getCurrentHome()
+  if (!home) {
     return <HomeSetup />
   }
 

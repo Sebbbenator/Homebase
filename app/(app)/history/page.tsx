@@ -1,26 +1,21 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getCurrentHome } from '@/lib/actions/session'
 import { ActivityFeed } from '@/components/activity/ActivityFeed'
 import { getProfilesMap } from '@/lib/actions/profile'
-import type { ActivityLog, Profile } from '@/lib/types'
+import type { ActivityLog } from '@/lib/types'
 
 export default async function HistoryPage() {
+  const home = await getCurrentHome()
+  if (!home) redirect('/dashboard')
+
+  const { user, homeId } = home
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const { data: membership } = await supabase
-    .from('home_members')
-    .select('home_id')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!membership) redirect('/dashboard')
 
   const { data: logs } = await supabase
     .from('activity_logs')
     .select()
-    .eq('home_id', membership.home_id)
+    .eq('home_id', homeId)
     .order('created_at', { ascending: false })
     .limit(100)
 
