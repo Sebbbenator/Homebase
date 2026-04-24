@@ -101,7 +101,7 @@ export function TaskCard({ task, currentUserId, onEdit, isLast }: TaskCardProps)
       <div className="swipe-actions">
         <button
           onClick={() => onEdit(task)}
-          className="w-9 h-9 rounded-xl bg-neutral-700 flex items-center justify-center text-neutral-300 hover:text-white transition-colors"
+          className="w-9 h-9 rounded-xl bg-white/[0.08] flex items-center justify-center text-zinc-300 hover:text-white transition-colors"
         >
           <Pencil className="w-4 h-4" />
         </button>
@@ -119,7 +119,7 @@ export function TaskCard({ task, currentUserId, onEdit, isLast }: TaskCardProps)
         className={cn(
           'swipe-content group relative px-4 py-3.5 transition-all',
           overdue && 'bg-red-500/5',
-          !isLast && 'border-b border-neutral-800/60'
+          !isLast && 'border-b border-white/[0.05]'
         )}
         style={{ transform: `translateX(-${swipeX}px)` }}
         onTouchStart={onTouchStart}
