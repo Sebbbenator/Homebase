@@ -5,7 +5,7 @@ import { PresetCard } from './PresetCard'
 import { TaskForm } from './TaskForm'
 import { WeeklySummaryModal } from './WeeklySummaryModal'
 import { useRealtimeTasks } from '@/lib/hooks/useRealtimeTasks'
-import { Plus, ListTodo, AlertCircle, Sparkles, CheckCircle2 } from 'lucide-react'
+import { Plus, ListTodo, AlertCircle, Sparkles } from 'lucide-react'
 import { getGreeting } from '@/lib/utils'
 import { CATEGORIES } from '@/lib/categories'
 import type { Task, HomeMember, Profile, PresetCompletion } from '@/lib/types'
@@ -79,7 +79,7 @@ export function TaskList({ initialTasks, members, homeId, currentUserId, profile
 
   // Header stats based on the active tab
   const needsDoingCount = presetTasks.filter((t) => t.preset_status === 'needs_doing').length
-  const openSpecialCount = specialTasks.filter((t) => !t.is_completed).length
+  const openSpecialCount = specialTasks.filter((t) => t.preset_status === 'needs_doing').length
   const greeting = getGreeting()
 
   function handleEdit(task: Task) {
@@ -133,9 +133,9 @@ export function TaskList({ initialTasks, members, homeId, currentUserId, profile
                     {specialTasks.length} specielle
                   </span>
                   {openSpecialCount > 0 && (
-                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-500/15 text-xs font-semibold text-purple-400">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      {openSpecialCount} åbne
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/15 text-xs font-semibold text-orange-400">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      {openSpecialCount} afventer
                     </span>
                   )}
                 </>
