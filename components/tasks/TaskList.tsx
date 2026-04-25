@@ -164,7 +164,7 @@ export function TaskList({ initialTasks, members, homeId, currentUserId, profile
           }`}
         >
           <ListTodo className="w-3.5 h-3.5" />
-          Ugentlige
+          Normale
           {needsDoingCount > 0 && activeTab !== 'weekly' && (
             <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
           )}
@@ -229,7 +229,7 @@ export function TaskList({ initialTasks, members, homeId, currentUserId, profile
               {filterCat !== 'all'
                 ? 'Ingen opgaver i denne kategori'
                 : activeTab === 'weekly'
-                ? 'Ingen ugentlige opgaver endnu — tilføj en!'
+                ? 'Ingen normale opgaver endnu — tilføj en!'
                 : 'Ingen specielle opgaver endnu — tilføj en!'}
             </p>
           </div>
