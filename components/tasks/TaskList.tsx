@@ -62,7 +62,7 @@ export function TaskList({ initialTasks, members, homeId, currentUserId, profile
         if (a.preset_status !== b.preset_status) {
           return a.preset_status === 'needs_doing' ? -1 : 1
         }
-        return a.title.localeCompare(b.title)
+        return a.title.localeCompare(b.title, 'da')
       })
     } else {
       copy.sort((a, b) => {
