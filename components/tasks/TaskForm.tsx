@@ -3,44 +3,24 @@
 import { useState, useEffect } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { createTask, updateTask } from '@/lib/actions/tasks'
-import { Star, ListTodo, Sparkles } from 'lucide-react'
+import { Star } from 'lucide-react'
 import { CATEGORIES } from '@/lib/categories'
-import type { Task, HomeMember, Profile, RepeatType } from '@/lib/types'
+import type { Task } from '@/lib/types'
 
 interface TaskFormProps {
   open: boolean
   onClose: () => void
   editTask?: Task | null
-  members?: HomeMember[]
-  profiles?: Record<string, Profile>
   defaultIsPreset?: boolean
 }
 
 const POINT_PRESETS = [5, 10, 15, 20, 30, 50]
 
-const REPEAT_OPTIONS: { id: RepeatType; label: string }[] = [
-  { id: 'none', label: 'Ingen' },
-  { id: 'daily', label: 'Dagligt' },
-  { id: 'weekly', label: 'Ugentligt' },
-  { id: 'biweekly', label: 'Hver 2. uge' },
-]
-
-export function TaskForm({
-  open,
-  onClose,
-  editTask,
-  members = [],
-  profiles = {},
-  defaultIsPreset = true,
-}: TaskFormProps) {
+export function TaskForm({ open, onClose, editTask, defaultIsPreset = true }: TaskFormProps) {
   const [title, setTitle] = useState(editTask?.title ?? '')
   const [description, setDescription] = useState(editTask?.description ?? '')
   const [points, setPoints] = useState(editTask?.points ?? 10)
   const [category, setCategory] = useState(editTask?.category ?? 'other')
-  const [isPreset, setIsPreset] = useState<boolean>(editTask?.is_preset ?? defaultIsPreset)
-  const [assignedTo, setAssignedTo] = useState<string>(editTask?.assigned_to ?? '')
-  const [dueDate, setDueDate] = useState<string>(editTask?.due_date ?? '')
-  const [repeatType, setRepeatType] = useState<RepeatType>(editTask?.repeat_type ?? 'none')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -51,12 +31,8 @@ export function TaskForm({
     setDescription(editTask?.description ?? '')
     setPoints(editTask?.points ?? 10)
     setCategory(editTask?.category ?? 'other')
-    setIsPreset(editTask?.is_preset ?? defaultIsPreset)
-    setAssignedTo(editTask?.assigned_to ?? '')
-    setDueDate(editTask?.due_date ?? '')
-    setRepeatType(editTask?.repeat_type ?? 'none')
     setError('')
-  }, [editTask, defaultIsPreset, open])
+  }, [editTask, open])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -69,22 +45,14 @@ export function TaskForm({
           description: description.trim() || undefined,
           points,
           category,
-          ...(!isPreset && {
-            assigned_to: assignedTo || null,
-            due_date: dueDate || null,
-            repeat_type: repeatType,
-          }),
         })
       } else {
         await createTask({
           title: title.trim(),
           description: description.trim() || undefined,
-          is_preset: isPreset,
+          is_preset: defaultIsPreset,
           points,
           category,
-          assigned_to: isPreset ? null : (assignedTo || null),
-          due_date: isPreset ? null : (dueDate || null),
-          repeat_type: isPreset ? 'none' : repeatType,
         })
       }
       onClose()
@@ -93,9 +61,6 @@ export function TaskForm({
         setDescription('')
         setPoints(10)
         setCategory('other')
-        setAssignedTo('')
-        setDueDate('')
-        setRepeatType('none')
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Der opstod en fejl')
@@ -111,39 +76,6 @@ export function TaskForm({
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? 'Rediger opgave' : 'Ny opgave'}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {/* Type toggle (only for new tasks) */}
-        {!isEdit && (
-          <div>
-            <label className={labelClass}>Type</label>
-            <div className="flex items-center gap-1 p-1 bg-white/[0.04] border border-white/[0.05] rounded-2xl">
-              <button
-                type="button"
-                onClick={() => setIsPreset(true)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl transition-all ${
-                  isPreset
-                    ? 'bg-white/[0.08] text-white shadow-sm'
-                    : 'text-zinc-500 hover:text-zinc-300'
-                }`}
-              >
-                <ListTodo className="w-3.5 h-3.5" />
-                Ugentlig
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsPreset(false)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl transition-all ${
-                  !isPreset
-                    ? 'bg-white/[0.08] text-white shadow-sm'
-                    : 'text-zinc-500 hover:text-zinc-300'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                Speciel
-              </button>
-            </div>
-          </div>
-        )}
-
         <div>
           <label className={labelClass}>Titel *</label>
           <input
@@ -186,77 +118,6 @@ export function TaskForm({
             ))}
           </div>
         </div>
-
-        {/* Special-task-only fields */}
-        {!isPreset && (
-          <>
-            <div>
-              <label className={labelClass}>Tildel til</label>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAssignedTo('')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-xl border transition-all ${
-                    assignedTo === ''
-                      ? 'bg-orange-500/15 text-orange-400 border-orange-500/30'
-                      : 'bg-white/[0.05] text-zinc-400 border-white/[0.06] hover:bg-white/[0.08]'
-                  }`}
-                >
-                  Ingen
-                </button>
-                {members.map((m) => {
-                  const name = profiles[m.user_id]?.display_name ?? m.email ?? m.user_id.slice(0, 6)
-                  const emoji = profiles[m.user_id]?.avatar_emoji
-                  return (
-                    <button
-                      key={m.user_id}
-                      type="button"
-                      onClick={() => setAssignedTo(m.user_id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl border transition-all ${
-                        assignedTo === m.user_id
-                          ? 'bg-orange-500/15 text-orange-400 border-orange-500/30'
-                          : 'bg-white/[0.05] text-zinc-400 border-white/[0.06] hover:bg-white/[0.08]'
-                      }`}
-                    >
-                      {emoji && <span>{emoji}</span>}
-                      {name}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div>
-              <label className={labelClass}>Forfaldsdato</label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className={inputClass}
-              />
-            </div>
-
-            <div>
-              <label className={labelClass}>Gentag</label>
-              <div className="flex flex-wrap gap-2">
-                {REPEAT_OPTIONS.map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => setRepeatType(r.id)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-xl border transition-all ${
-                      repeatType === r.id
-                        ? 'bg-purple-500/15 text-purple-400 border-purple-500/30'
-                        : 'bg-white/[0.05] text-zinc-400 border-white/[0.06] hover:bg-white/[0.08]'
-                    }`}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
 
         <div>
           <label className="flex items-center gap-1.5 text-sm font-medium text-zinc-300 mb-2">

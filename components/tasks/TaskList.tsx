@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react'
 import { PresetCard } from './PresetCard'
-import { TaskCard } from './TaskCard'
 import { TaskForm } from './TaskForm'
 import { WeeklySummaryModal } from './WeeklySummaryModal'
 import { useRealtimeTasks } from '@/lib/hooks/useRealtimeTasks'
@@ -234,7 +233,7 @@ export function TaskList({ initialTasks, members, homeId, currentUserId, profile
                 : 'Ingen specielle opgaver endnu — tilføj en!'}
             </p>
           </div>
-        ) : activeTab === 'weekly' ? (
+        ) : (
           sortedTasks.map((task) => (
             <PresetCard
               key={task.id}
@@ -246,18 +245,6 @@ export function TaskList({ initialTasks, members, homeId, currentUserId, profile
               onEdit={handleEdit}
             />
           ))
-        ) : (
-          <div className="bg-[#16161e] border border-white/[0.05] rounded-3xl overflow-hidden">
-            {sortedTasks.map((task, i) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                currentUserId={currentUserId}
-                onEdit={handleEdit}
-                isLast={i === sortedTasks.length - 1}
-              />
-            ))}
-          </div>
         )}
       </div>
 
@@ -265,8 +252,6 @@ export function TaskList({ initialTasks, members, homeId, currentUserId, profile
         open={showForm}
         onClose={handleCloseForm}
         editTask={editTask}
-        members={members}
-        profiles={profiles}
         defaultIsPreset={activeTab === 'weekly'}
       />
     </>
