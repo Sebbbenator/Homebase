@@ -1,8 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import { requireHome } from '@/lib/data/session'
-import { pushToHome } from '@/lib/push-server'
+import { admin, notifyHome } from '@/lib/notify'
+import { pointsByUser, startOfWeek } from '@/lib/points'
 import type { Completion, Task } from '@/lib/types'
 
 export interface TaskInput {
@@ -126,22 +128,100 @@ export async function completeTask(taskId: string, helperId?: string | null): Pr
 
   await supabase
     .from('tasks')
-    .update({ last_completed_at: now, last_completed_by: user.id, preset_status: 'idle' })
+    .update({ last_completed_at: now, last_completed_by: user.id, preset_status: 'idle', needed_notified_at: null })
     .eq('id', taskId)
 
   await log(supabase, homeId, user.id, 'completed', task)
 
-  // Push til de andre i huset (fejler stille)
-  const { data: profile } = await supabase.from('profiles').select('display_name, avatar_emoji').eq('id', user.id).maybeSingle()
-  const name = profile?.display_name || user.email?.split('@')[0] || 'Nogen'
-  void pushToHome(
-    homeId,
-    { title: `${profile?.avatar_emoji ?? '✅'} ${name} tog "${task.title}"`, body: `+${task.points ?? 10} point`, url: '/hjem' },
-    user.id
-  )
+  // Notifikationer sendes efter svaret er leveret, så UI'et ikke venter på dem
+  const points = task.points ?? 10
+  const userId = user.id
+  const email = user.email
+  after(() => notifyAfterCompletion({ homeId, userId, email, helper, task: { id: task.id, title: task.title }, points, completionId: completion.id }))
 
   revalidateAll()
   return completion as Completion
+}
+
+async function notifyAfterCompletion(args: {
+  homeId: string
+  userId: string
+  email?: string | null
+  helper: string | null
+  task: { id: string; title: string }
+  points: number
+  completionId: string
+}) {
+  const { homeId, userId, email, helper, task, points, completionId } = args
+  try {
+    const db = admin()
+    const { data: profiles } = await db.from('profiles').select('id, display_name, avatar_emoji')
+    const names: Record<string, { name: string; emoji: string }> = {}
+    for (const p of profiles ?? []) names[p.id] = { name: p.display_name || 'Nogen', emoji: p.avatar_emoji || '✅' }
+    const me = names[userId] ?? { name: email?.split('@')[0] || 'Nogen', emoji: '✅' }
+    const exclude = [userId, ...(helper ? [helper] : [])]
+
+    const jobs: Promise<unknown>[] = [
+      notifyHome(
+        homeId,
+        'task_done',
+        {
+          title: `${me.emoji} ${me.name} tog "${task.title}"`,
+          body: helper ? `+${points} point til ${me.name} og ${names[helper]?.name ?? 'hjælperen'}` : `+${points} point`,
+          url: '/hjem',
+          tag: `done-${task.id}`,
+        },
+        { exclude }
+      ),
+    ]
+
+    if (helper) {
+      jobs.push(
+        notifyHome(
+          homeId,
+          'helper_mention',
+          { title: `${me.name} gav dig ${points} point`, body: `For at hjælpe med "${task.title}"`, url: '/hjem', tag: `helper-${completionId}` },
+          { only: [helper] }
+        )
+      )
+    }
+
+    // Ny leder på ugens scoretavle?
+    const weekStart = startOfWeek()
+    const { data: weekRows } = await db
+      .from('preset_completions')
+      .select()
+      .eq('home_id', homeId)
+      .gte('completed_at', weekStart.toISOString())
+    const week = (weekRows ?? []) as Completion[]
+    const leaderOf = (rows: Completion[]) => {
+      const pts = pointsByUser(rows, null)
+      const sorted = Object.entries(pts).sort((a, b) => b[1] - a[1])
+      return sorted.length && sorted[0][1] > 0 ? { id: sorted[0][0], pts: sorted[0][1], all: pts } : null
+    }
+    const before = leaderOf(week.filter((c) => c.id !== completionId))
+    const afterLeader = leaderOf(week)
+    if (before && afterLeader && before.id !== afterLeader.id && exclude.includes(afterLeader.id) && !exclude.includes(before.id)) {
+      const newLeader = names[afterLeader.id]?.name ?? 'Nogen'
+      jobs.push(
+        notifyHome(
+          homeId,
+          'rank_change',
+          {
+            title: `${newLeader} har overhalet dig 👀`,
+            body: `Ugens scoretavle: ${newLeader} ${afterLeader.pts} · dig ${afterLeader.all[before.id] ?? 0}`,
+            url: '/hjem',
+            tag: 'rank',
+          },
+          { only: [before.id] }
+        )
+      )
+    }
+
+    await Promise.allSettled(jobs)
+  } catch (err) {
+    console.error('notifyAfterCompletion fejlede', err)
+  }
 }
 
 /** Fortryd en fuldførelse (fx tastet forkert). Genberegner "sidst gjort". */

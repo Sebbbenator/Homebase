@@ -5,7 +5,7 @@ import { Check, Plus, ShoppingBasket, Trash2 } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { useToast } from '@/components/ui/Toast'
 import { useRealtimeShopping } from '@/lib/hooks/useRealtimeShopping'
-import { addShoppingItem, clearPurchased, removeShoppingItem, setPurchased } from '@/lib/actions/shopping'
+import { addShoppingItem, clearPurchased, removeShoppingItem, setPurchased, startShopping } from '@/lib/actions/shopping'
 import { cn, displayName, haptic } from '@/lib/utils'
 import type { Profiles, ShoppingItem } from '@/lib/types'
 
@@ -100,7 +100,11 @@ export function ShoppingView({ initialItems, homeId, userId, profiles }: Shoppin
         </div>
         <button
           type="button"
-          onClick={() => setShopMode((v) => !v)}
+          onClick={() => {
+            const next = !shopMode
+            setShopMode(next)
+            if (next && pending.length > 0) startShopping().catch(() => {})
+          }}
           aria-pressed={shopMode}
           className={cn(
             'h-11 px-4 rounded-full flex items-center gap-2 text-[13px] font-extrabold transition-colors',

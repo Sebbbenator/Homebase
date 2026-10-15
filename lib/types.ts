@@ -65,3 +65,34 @@ export interface ShoppingItem {
 }
 
 export type Profiles = Record<string, Profile>
+
+export interface NotificationPrefs {
+  user_id: string
+  task_needed: boolean
+  task_done: boolean
+  helper_mention: boolean
+  rank_change: boolean
+  shopping: boolean
+  morning_brief: boolean
+  evening_reminder: boolean
+  weekly_summary: boolean
+  streak_warning: boolean
+  quiet_start: string
+  quiet_end: string
+}
+
+export type PrefKey = Exclude<keyof NotificationPrefs, 'user_id' | 'quiet_start' | 'quiet_end'>
+
+export const DEFAULT_PREFS: Omit<NotificationPrefs, 'user_id'> = {
+  task_needed: true,
+  task_done: true,
+  helper_mention: true,
+  rank_change: true,
+  shopping: true,
+  morning_brief: true,
+  evening_reminder: true,
+  weekly_summary: true,
+  streak_warning: true,
+  quiet_start: '22:00',
+  quiet_end: '07:00',
+}

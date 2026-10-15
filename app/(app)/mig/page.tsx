@@ -1,10 +1,9 @@
 import Link from 'next/link'
-import { ChevronRight, Clock, ListChecks } from 'lucide-react'
+import { Bell, ChevronRight, Clock, ListChecks } from 'lucide-react'
 import { requireHome } from '@/lib/data/session'
 import { ProfileCard } from '@/components/profile/ProfileCard'
 import { InviteCard } from '@/components/profile/InviteCard'
 import { SignOutButton } from '@/components/profile/SignOutButton'
-import { PushPrompt } from '@/components/push/PushPrompt'
 import { Avatar } from '@/components/ui/Avatar'
 import { displayName } from '@/lib/utils'
 import type { Home, Profile } from '@/lib/types'
@@ -54,10 +53,16 @@ export default async function MigPage() {
         </section>
       )}
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-display text-[17px] font-semibold px-1">Notifikationer</h2>
-        <PushPrompt />
-      </section>
+      <Link href="/mig/notifikationer" className="bg-card rounded-card shadow-card px-4 py-3.5 flex items-center gap-3">
+        <span className="w-10 h-10 rounded-full bg-accent-soft text-accent-ink flex items-center justify-center flex-shrink-0">
+          <Bell className="w-5 h-5" />
+        </span>
+        <span className="flex-1 min-w-0 flex flex-col gap-0.5">
+          <span className="text-sm font-extrabold">Notifikationer</span>
+          <span className="text-xs font-semibold text-muted">Push, påmindelser og stille timer</span>
+        </span>
+        <ChevronRight className="w-5 h-5 text-faint" />
+      </Link>
 
       <SignOutButton />
 

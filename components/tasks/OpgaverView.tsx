@@ -19,14 +19,22 @@ import type { Task } from '@/lib/types'
 
 type Filter = 'all' | 'now' | string
 
-export function OpgaverView({ data }: { data: HomeData }) {
+interface OpgaverViewProps {
+  data: HomeData
+  /** Fra ?task= (dybt link fra notifikationer) */
+  initialOpenId?: string
+  /** Fra ?filter= (fx "now") */
+  initialFilter?: string
+}
+
+export function OpgaverView({ data, initialOpenId, initialFilter }: OpgaverViewProps) {
   const [tasks, setTasks] = useRealtimeTasks(data.homeId, data.tasks)
   const [completions, setCompletions] = useRealtimeCompletions(data.homeId, data.completions)
   const { complete } = useTaskActions({ currentUserId: data.userId, setTasks, setCompletions })
   const toast = useToast()
 
-  const [filter, setFilter] = useState<Filter>('all')
-  const [openId, setOpenId] = useState<string | null>(null)
+  const [filter, setFilter] = useState<Filter>(initialFilter === 'now' ? 'now' : 'all')
+  const [openId, setOpenId] = useState<string | null>(initialOpenId && data.tasks.some((t) => t.id === initialOpenId) ? initialOpenId : null)
   const [formOpen, setFormOpen] = useState(false)
   const [editTask, setEditTask] = useState<Task | null>(null)
   const [justDone, setJustDone] = useState<string | null>(null)
