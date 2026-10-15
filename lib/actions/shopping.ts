@@ -1,88 +1,55 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requireHome } from '@/lib/data/session'
+import type { ShoppingItem } from '@/lib/types'
 
-export async function addShoppingItem(name: string, quantity?: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  const { data: membership } = await supabase
-    .from('home_members')
-    .select('home_id')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!membership) throw new Error('No home found')
-
-  const { error } = await supabase.from('shopping_items').insert({
-    home_id: membership.home_id,
-    name,
-    quantity: quantity || null,
-    added_by: user.id,
-  })
-
-  if (error) throw error
-  revalidatePath('/shopping')
+function revalidate() {
+  revalidatePath('/indkoeb')
+  revalidatePath('/hjem')
 }
 
-export async function togglePurchased(itemId: string, current: boolean) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
+export async function addShoppingItem(name: string, quantity?: string | null): Promise<ShoppingItem> {
+  const { supabase, user, homeId } = await requireHome()
+  const trimmed = name.trim()
+  if (!trimmed) throw new Error('Skriv hvad der skal købes')
 
+  const { data, error } = await supabase
+    .from('shopping_items')
+    .insert({ home_id: homeId, name: trimmed, quantity: quantity?.trim() || null, added_by: user.id })
+    .select()
+    .single()
+
+  if (error) throw new Error(error.message)
+  revalidate()
+  return data as ShoppingItem
+}
+
+export async function setPurchased(itemId: string, purchased: boolean) {
+  const { supabase, homeId } = await requireHome()
   const { error } = await supabase
     .from('shopping_items')
-    .update({ is_purchased: !current })
+    .update({ is_purchased: purchased })
     .eq('id', itemId)
-
-  if (error) throw error
-  revalidatePath('/shopping')
+    .eq('home_id', homeId)
+  if (error) throw new Error(error.message)
+  revalidate()
 }
 
 export async function removeShoppingItem(itemId: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  const { error } = await supabase.from('shopping_items').delete().eq('id', itemId)
-  if (error) throw error
-  revalidatePath('/shopping')
+  const { supabase, homeId } = await requireHome()
+  const { error } = await supabase.from('shopping_items').delete().eq('id', itemId).eq('home_id', homeId)
+  if (error) throw new Error(error.message)
+  revalidate()
 }
 
 export async function clearPurchased() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
-  const { data: membership } = await supabase
-    .from('home_members')
-    .select('home_id')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!membership) throw new Error('No home found')
-
+  const { supabase, homeId } = await requireHome()
   const { error } = await supabase
     .from('shopping_items')
     .delete()
-    .eq('home_id', membership.home_id)
+    .eq('home_id', homeId)
     .eq('is_purchased', true)
-
-  if (error) throw error
-  revalidatePath('/shopping')
-}
-
-export async function getShoppingItems() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return []
-
-  const { data } = await supabase
-    .from('shopping_items')
-    .select()
-    .order('created_at', { ascending: false })
-
-  return data ?? []
+  if (error) throw new Error(error.message)
+  revalidate()
 }

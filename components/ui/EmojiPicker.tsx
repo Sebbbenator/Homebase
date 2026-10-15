@@ -2,29 +2,14 @@
 
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import { Modal } from './Modal'
+import { Sheet } from './Sheet'
 
 const EMOJI_GROUPS = [
-  {
-    label: 'Faces',
-    emojis: ['😀', '😎', '🤩', '😇', '🥳', '😤', '🤓', '😏', '🥰', '🤗', '😴', '🫡', '🤠', '👻', '🤖', '👽'],
-  },
-  {
-    label: 'Animals',
-    emojis: ['🐶', '🐱', '🐻', '🦊', '🐼', '🐨', '🦁', '🐸', '🐧', '🦄', '🐙', '🦋', '🐝', '🐳', '🦈', '🦉'],
-  },
-  {
-    label: 'Food',
-    emojis: ['🍕', '🍔', '🌮', '🍣', '🍩', '🧁', '🍉', '🥑', '🍟', '☕', '🧋', '🍪', '🌶️', '🍑', '🫐', '🥐'],
-  },
-  {
-    label: 'Activities',
-    emojis: ['⚽', '🎮', '🎸', '🎨', '🏄', '🚀', '🎯', '🏆', '💎', '🔥', '⭐', '🌈', '🎪', '🎭', '🛹', '🏔️'],
-  },
-  {
-    label: 'Nature',
-    emojis: ['🌸', '🌻', '🍀', '🌙', '☀️', '🌊', '❄️', '🌵', '🍄', '🪴', '🌴', '🦩', '🐚', '🪸', '🌺', '🍁'],
-  },
+  { label: 'Ansigter', emojis: ['😀', '😎', '🤩', '😇', '🥳', '😤', '🤓', '😏', '🥰', '🤗', '😴', '🫡', '🤠', '👻', '🤖', '👽'] },
+  { label: 'Dyr', emojis: ['🐶', '🐱', '🐻', '🦊', '🐼', '🐨', '🦁', '🐸', '🐧', '🦄', '🐙', '🦋', '🐝', '🐳', '🦈', '🦉', '🦆', '🐢'] },
+  { label: 'Mad', emojis: ['🍕', '🍔', '🌮', '🍣', '🍩', '🧁', '🍉', '🥑', '🍟', '☕', '🧋', '🍪', '🌶️', '🍑', '🫐', '🥐'] },
+  { label: 'Aktiviteter', emojis: ['⚽', '🎮', '🎸', '🎨', '🏄', '🚀', '🎯', '🏆', '💎', '🔥', '⭐', '🌈', '🎪', '🎭', '🛹', '🏔️'] },
+  { label: 'Natur', emojis: ['🌸', '🌻', '🍀', '🌙', '☀️', '🌊', '❄️', '🌵', '🍄', '🪴', '🌴', '🦩', '🐚', '🪸', '🌺', '🍁'] },
 ]
 
 interface EmojiPickerProps {
@@ -35,55 +20,51 @@ interface EmojiPickerProps {
 }
 
 export function EmojiPicker({ open, onClose, onSelect, current }: EmojiPickerProps) {
+  return (
+    <Sheet open={open} onClose={onClose} title="Vælg din avatar">
+      {/* Body'en monteres på ny hver gang sheet'et åbnes, så valget starter fra `current` */}
+      <PickerBody current={current} onClose={onClose} onSelect={onSelect} />
+    </Sheet>
+  )
+}
+
+function PickerBody({ current, onClose, onSelect }: Omit<EmojiPickerProps, 'open'>) {
   const [selected, setSelected] = useState(current)
 
-  function handleConfirm() {
-    onSelect(selected)
-    onClose()
-  }
-
   return (
-    <Modal open={open} onClose={onClose} title="Choose Your Avatar">
-      <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-        {EMOJI_GROUPS.map((group) => (
-          <div key={group.label}>
-            <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-2">
-              {group.label}
-            </p>
-            <div className="grid grid-cols-8 gap-1">
-              {group.emojis.map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={() => setSelected(emoji)}
-                  className={cn(
-                    'w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all hover:scale-110',
-                    selected === emoji
-                      ? 'bg-orange-600/20 ring-2 ring-orange-500 scale-110'
-                      : 'hover:bg-neutral-800'
-                  )}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
+    <div className="flex flex-col gap-4">
+      {EMOJI_GROUPS.map((group) => (
+        <div key={group.label}>
+          <p className="text-xs font-extrabold text-faint uppercase tracking-wider mb-2">{group.label}</p>
+          <div className="grid grid-cols-8 gap-1">
+            {group.emojis.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => setSelected(emoji)}
+                aria-pressed={selected === emoji}
+                aria-label={emoji}
+                className={cn(
+                  'aspect-square rounded-xl flex items-center justify-center text-2xl transition-transform',
+                  selected === emoji ? 'bg-accent-soft ring-2 ring-accent scale-110' : 'hover:bg-soft'
+                )}
+              >
+                {emoji}
+              </button>
+            ))}
           </div>
-        ))}
-      </div>
-
-      <div className="flex gap-3 mt-5 pt-4 border-t border-neutral-800">
+        </div>
+      ))}
+      <div className="flex gap-3 pt-2 sticky bottom-0 bg-card">
+        <button type="button" onClick={onClose} className="flex-1 h-12 rounded-2xl bg-soft text-body font-extrabold text-[15px]">Annullér</button>
         <button
-          onClick={onClose}
-          className="flex-1 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-medium rounded-xl text-sm transition-colors"
+          type="button"
+          onClick={() => { onSelect(selected); onClose() }}
+          className="flex-1 h-12 rounded-2xl bg-accent text-ink font-extrabold text-[15px] shadow-float"
         >
-          Cancel
-        </button>
-        <button
-          onClick={handleConfirm}
-          className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-medium rounded-xl text-sm transition-colors"
-        >
-          Save
+          Gem
         </button>
       </div>
-    </Modal>
+    </div>
   )
 }

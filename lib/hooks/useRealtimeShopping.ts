@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { ShoppingItem } from '@/lib/types'
 
-export function useRealtimeShopping(homeId: string, initial: ShoppingItem[]): ShoppingItem[] {
+export function useRealtimeShopping(
+  homeId: string,
+  initial: ShoppingItem[]
+): [ShoppingItem[], Dispatch<SetStateAction<ShoppingItem[]>>] {
   const [items, setItems] = useState<ShoppingItem[]>(initial)
 
   useEffect(() => {
@@ -17,21 +20,13 @@ export function useRealtimeShopping(homeId: string, initial: ShoppingItem[]): Sh
       .channel(`shopping:${homeId}`)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'shopping_items',
-          filter: `home_id=eq.${homeId}`,
-        },
+        { event: '*', schema: 'public', table: 'shopping_items', filter: `home_id=eq.${homeId}` },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setItems((prev) => [payload.new as ShoppingItem, ...prev])
+            const item = payload.new as ShoppingItem
+            setItems((prev) => (prev.some((i) => i.id === item.id) ? prev : [item, ...prev]))
           } else if (payload.eventType === 'UPDATE') {
-            setItems((prev) =>
-              prev.map((i) =>
-                i.id === payload.new.id ? { ...i, ...(payload.new as ShoppingItem) } : i
-              )
-            )
+            setItems((prev) => prev.map((i) => (i.id === payload.new.id ? { ...i, ...(payload.new as ShoppingItem) } : i)))
           } else if (payload.eventType === 'DELETE') {
             setItems((prev) => prev.filter((i) => i.id !== payload.old.id))
           }
@@ -44,5 +39,5 @@ export function useRealtimeShopping(homeId: string, initial: ShoppingItem[]): Sh
     }
   }, [homeId])
 
-  return items
+  return [items, setItems]
 }

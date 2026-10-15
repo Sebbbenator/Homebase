@@ -3,123 +3,118 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Home } from 'lucide-react'
+import { House } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+const inputClass =
+  'w-full h-12 px-4 bg-soft border-2 border-transparent rounded-2xl text-ink placeholder-faint text-[15px] font-semibold focus:outline-none focus:border-accent focus:bg-card transition'
 
 export default function LoginPage() {
   const router = useRouter()
-  const supabase = createClient()
   const [tab, setTab] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState('')
+  const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setSuccess('')
     setLoading(true)
-
+    const supabase = createClient()
     try {
       if (tab === 'signin') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
-        router.push('/dashboard')
+        router.push('/hjem')
         router.refresh()
       } else {
         const { error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
-        setSuccess('Account created! You can now sign in.')
+        setSuccess('Kontoen er oprettet – du kan logge ind nu.')
         setTab('signin')
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const msg = err instanceof Error ? err.message : ''
+      setError(
+        /invalid login/i.test(msg) ? 'Forkert e-mail eller adgangskode.'
+        : /already registered/i.test(msg) ? 'Der findes allerede en konto med den e-mail.'
+        : msg || 'Noget gik galt – prøv igen.'
+      )
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-950 px-4">
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-orange-600 flex items-center justify-center mb-4">
-            <Home className="w-6 h-6 text-white" />
+    <div className="min-h-dvh flex items-center justify-center px-5 py-10">
+      <div className="w-full max-w-sm flex flex-col gap-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="w-16 h-16 rounded-[22px] bg-accent flex items-center justify-center shadow-float">
+            <House className="w-8 h-8 text-ink" strokeWidth={2.4} />
+          </span>
+          <div>
+            <h1 className="font-display text-3xl font-bold leading-none">HomeBase</h1>
+            <p className="text-sm font-semibold text-muted mt-1.5">Opgaver, indkøb og point – sammen.</p>
           </div>
-          <h1 className="text-2xl font-bold text-neutral-50">HomeBase</h1>
-          <p className="text-neutral-400 text-sm mt-1">Manage your household together</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-neutral-900 rounded-2xl border border-neutral-800 p-6">
-          {/* Tabs */}
-          <div className="flex bg-neutral-800 rounded-xl p-1 mb-6">
-            <button
-              onClick={() => setTab('signin')}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-                tab === 'signin'
-                  ? 'bg-neutral-700 text-neutral-50 shadow-sm'
-                  : 'text-neutral-400 hover:text-neutral-300'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => setTab('signup')}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-                tab === 'signup'
-                  ? 'bg-neutral-700 text-neutral-50 shadow-sm'
-                  : 'text-neutral-400 hover:text-neutral-300'
-              }`}
-            >
-              Sign Up
-            </button>
+        <div className="bg-card rounded-[28px] shadow-card p-5 flex flex-col gap-5">
+          <div className="flex bg-soft rounded-full p-1" role="tablist">
+            {(['signin', 'signup'] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={tab === t}
+                onClick={() => { setTab(t); setError(''); setSuccess('') }}
+                className={cn('flex-1 h-10 rounded-full text-sm font-extrabold transition-colors', tab === t ? 'bg-card text-ink shadow-card' : 'text-muted')}
+              >
+                {t === 'signin' ? 'Log ind' : 'Opret konto'}
+              </button>
+            ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1.5">
-                Email
-              </label>
+              <label htmlFor="email" className="block text-[13px] font-extrabold text-muted mb-2">E-mail</label>
               <input
+                id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="you@example.com"
-                className="w-full px-3.5 py-2.5 bg-neutral-800 border border-neutral-700 rounded-xl text-neutral-50 placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+                autoComplete="email"
+                placeholder="dig@eksempel.dk"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1.5">
-                Password
-              </label>
+              <label htmlFor="password" className="block text-[13px] font-extrabold text-muted mb-2">Adgangskode</label>
               <input
+                id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                placeholder="••••••••"
                 minLength={6}
-                className="w-full px-3.5 py-2.5 bg-neutral-800 border border-neutral-700 rounded-xl text-neutral-50 placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+                autoComplete={tab === 'signin' ? 'current-password' : 'new-password'}
+                placeholder="Mindst 6 tegn"
+                className={inputClass}
               />
             </div>
 
-            {error && (
-              <p className="text-red-400 text-sm bg-red-400/10 rounded-lg px-3 py-2">{error}</p>
-            )}
-            {success && (
-              <p className="text-green-400 text-sm bg-green-400/10 rounded-lg px-3 py-2">{success}</p>
-            )}
+            {error && <p className="text-danger-ink text-sm font-bold bg-danger-soft rounded-xl px-3 py-2">{error}</p>}
+            {success && <p className="text-good-ink text-sm font-bold bg-good-soft rounded-xl px-3 py-2">{success}</p>}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-xl text-sm transition-colors"
+              className="h-12 rounded-2xl bg-accent text-ink font-extrabold text-[15px] shadow-float disabled:opacity-60 disabled:shadow-none"
             >
-              {loading ? 'Please wait...' : tab === 'signin' ? 'Sign In' : 'Create Account'}
+              {loading ? 'Et øjeblik…' : tab === 'signin' ? 'Log ind' : 'Opret konto'}
             </button>
           </form>
         </div>

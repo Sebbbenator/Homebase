@@ -1,52 +1,42 @@
-// Service worker for push notifications
+// Service worker: push-notifikationer
 
 self.addEventListener('push', (event) => {
   if (!event.data) return
-
   const data = event.data.json()
 
   event.waitUntil(
     Promise.all([
       self.registration.showNotification(data.title || 'HomeBase', {
-        body: data.body || 'Something needs your attention',
+        body: data.body || 'Der er noget at se til derhjemme',
         icon: '/icon-192.png',
         badge: '/icon-192.png',
         tag: data.tag || 'homebase',
-        data: {
-          url: data.url || '/dashboard',
-        },
+        data: { url: data.url || '/hjem' },
       }),
-      // Set app icon badge
       navigator.setAppBadge ? navigator.setAppBadge() : Promise.resolve(),
     ])
   )
 })
 
-// Open the app when notification is tapped
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-
-  const url = event.notification.data?.url || '/dashboard'
+  const url = event.notification.data?.url || '/hjem'
 
   event.waitUntil(
     Promise.all([
-      // Clear app icon badge when user taps notification
       navigator.clearAppBadge ? navigator.clearAppBadge() : Promise.resolve(),
       clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-        // Focus existing window if open
         for (const client of windowClients) {
           if (client.url.includes(self.location.origin) && 'focus' in client) {
             client.navigate(url)
             return client.focus()
           }
         }
-        // Otherwise open new window
         return clients.openWindow(url)
       }),
     ])
   )
 })
 
-// Activate immediately
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', () => self.clients.claim())

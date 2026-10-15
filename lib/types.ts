@@ -1,5 +1,3 @@
-export type RepeatType = 'none' | 'daily' | 'weekly' | 'biweekly'
-
 export interface Home {
   id: string
   name: string
@@ -12,44 +10,38 @@ export interface HomeMember {
   home_id: string
   user_id: string
   joined_at: string
-  email?: string
 }
 
-export type PresetStatus = 'idle' | 'needs_doing'
+export interface Profile {
+  id: string
+  display_name: string | null
+  avatar_emoji: string
+  updated_at: string
+}
 
 export interface Task {
   id: string
   home_id: string
   title: string
   description: string | null
-  assigned_to: string | null
   created_by: string
-  due_date: string | null
-  is_completed: boolean
-  repeat_type: RepeatType
-  completed_at: string | null
   created_at: string
   is_preset: boolean
-  preset_status: PresetStatus
   points: number
   category: string
-  assigned_email?: string
-  created_email?: string
-  assigned_emoji?: string
-  created_emoji?: string
+  interval_days: number | null
+  last_completed_at: string | null
+  last_completed_by: string | null
 }
 
-export interface PresetCompletion {
+export interface Completion {
   id: string
   task_id: string
   home_id: string
   completed_by: string
   completed_at: string
-  completed_email?: string
-  completed_emoji?: string
-  helper_id?: string | null
-  helper_email?: string
-  helper_emoji?: string
+  helper_id: string | null
+  points: number
 }
 
 export interface ActivityLog {
@@ -60,8 +52,6 @@ export interface ActivityLog {
   task_id: string | null
   task_title: string | null
   created_at: string
-  user_email?: string
-  user_emoji?: string
 }
 
 export interface ShoppingItem {
@@ -72,21 +62,6 @@ export interface ShoppingItem {
   added_by: string
   is_purchased: boolean
   created_at: string
-  added_email?: string
 }
 
-export interface UserPoints {
-  id: string
-  home_id: string
-  user_id: string
-  points: number
-  updated_at: string
-  email?: string
-}
-
-export interface Profile {
-  id: string
-  display_name: string | null
-  avatar_emoji: string
-  updated_at: string
-}
+export type Profiles = Record<string, Profile>

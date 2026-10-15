@@ -1,11 +1,12 @@
 {
   "name": "HomeBase",
   "short_name": "HomeBase",
-  "description": "Manage tasks, shopping, and activities with your household.",
-  "start_url": "/dashboard",
+  "description": "Opgaver, indkøb og point – for hele husstanden.",
+  "lang": "da",
+  "start_url": "/hjem",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0f0f0f",
+  "background_color": "#F9F4EC",
+  "theme_color": "#F9F4EC",
   "orientation": "portrait",
   "icons": [
     {

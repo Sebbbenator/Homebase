@@ -1,9 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { createHome, joinHome } from '@/lib/actions/home'
 import { useRouter } from 'next/navigation'
-import { Home, Users } from 'lucide-react'
+import { House, Users } from 'lucide-react'
+import { createHome, joinHome } from '@/lib/actions/home'
+import { cn } from '@/lib/utils'
+
+const inputClass =
+  'w-full h-12 px-4 bg-soft border-2 border-transparent rounded-2xl text-ink placeholder-faint text-[15px] font-semibold focus:outline-none focus:border-accent focus:bg-card transition'
 
 export function HomeSetup() {
   const router = useRouter()
@@ -13,124 +17,71 @@ export function HomeSetup() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  async function handleCreate(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      await createHome(name.trim())
+      if (tab === 'create') await createHome(name)
+      else await joinHome(code)
+      router.replace('/hjem')
       router.refresh()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create home')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function handleJoin(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    try {
-      await joinHome(code.trim())
-      router.refresh()
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to join home')
+      const msg = err instanceof Error ? err.message : ''
+      setError(
+        /not found/i.test(msg) ? 'Koden blev ikke fundet – tjek den igen.'
+        : /already a member/i.test(msg) ? 'Du er allerede med i den husstand.'
+        : msg || 'Noget gik galt.'
+      )
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-950 px-4">
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-orange-600 flex items-center justify-center mb-4">
-            <Home className="w-6 h-6 text-white" />
+    <div className="min-h-dvh flex items-center justify-center px-5 py-10">
+      <div className="w-full max-w-sm flex flex-col gap-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="w-16 h-16 rounded-[22px] bg-accent flex items-center justify-center shadow-float">
+            <House className="w-8 h-8 text-ink" strokeWidth={2.4} />
+          </span>
+          <div>
+            <h1 className="font-display text-3xl font-bold leading-none">Velkommen!</h1>
+            <p className="text-sm font-semibold text-muted mt-1.5">Opret en husstand eller kom med i en eksisterende.</p>
           </div>
-          <h1 className="text-2xl font-bold text-neutral-50">Welcome!</h1>
-          <p className="text-neutral-400 text-sm mt-1 text-center">
-            Create a new home or join an existing one
-          </p>
         </div>
 
-        <div className="bg-neutral-900 rounded-2xl border border-neutral-800 p-6">
-          <div className="flex bg-neutral-800 rounded-xl p-1 mb-6">
-            <button
-              onClick={() => { setTab('create'); setError('') }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                tab === 'create'
-                  ? 'bg-neutral-700 text-neutral-50'
-                  : 'text-neutral-400 hover:text-neutral-300'
-              }`}
-            >
-              <Home className="w-3.5 h-3.5" />
-              Create
+        <div className="bg-card rounded-[28px] shadow-card p-5 flex flex-col gap-5">
+          <div className="flex bg-soft rounded-full p-1" role="tablist">
+            <button type="button" role="tab" aria-selected={tab === 'create'} onClick={() => { setTab('create'); setError('') }}
+              className={cn('flex-1 h-10 rounded-full text-sm font-extrabold flex items-center justify-center gap-1.5 transition-colors', tab === 'create' ? 'bg-card text-ink shadow-card' : 'text-muted')}>
+              <House className="w-4 h-4" /> Opret
             </button>
-            <button
-              onClick={() => { setTab('join'); setError('') }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                tab === 'join'
-                  ? 'bg-neutral-700 text-neutral-50'
-                  : 'text-neutral-400 hover:text-neutral-300'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              Join
+            <button type="button" role="tab" aria-selected={tab === 'join'} onClick={() => { setTab('join'); setError('') }}
+              className={cn('flex-1 h-10 rounded-full text-sm font-extrabold flex items-center justify-center gap-1.5 transition-colors', tab === 'join' ? 'bg-card text-ink shadow-card' : 'text-muted')}>
+              <Users className="w-4 h-4" /> Kom med
             </button>
           </div>
 
-          {tab === 'create' ? (
-            <form onSubmit={handleCreate} className="space-y-4">
+          <form onSubmit={submit} className="flex flex-col gap-4">
+            {tab === 'create' ? (
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-1.5">
-                  Home Name
-                </label>
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  placeholder="e.g. The Smiths"
-                  className="w-full px-3.5 py-2.5 bg-neutral-800 border border-neutral-700 rounded-xl text-neutral-50 placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
-                />
+                <label htmlFor="home-name" className="block text-[13px] font-extrabold text-muted mb-2">Hvad hedder jeres hjem?</label>
+                <input id="home-name" value={name} onChange={(e) => setName(e.target.value)} required placeholder="fx Galthens hus" className={inputClass} autoFocus />
               </div>
-              {error && (
-                <p className="text-red-400 text-sm bg-red-400/10 rounded-lg px-3 py-2">{error}</p>
-              )}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-medium rounded-xl text-sm transition-colors"
-              >
-                {loading ? 'Creating...' : 'Create Home'}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleJoin} className="space-y-4">
+            ) : (
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-1.5">
-                  Invite Code
-                </label>
-                <input
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  required
-                  placeholder="e.g. a1b2c3d4"
-                  className="w-full px-3.5 py-2.5 bg-neutral-800 border border-neutral-700 rounded-xl text-neutral-50 placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition font-mono"
-                />
+                <label htmlFor="invite-code" className="block text-[13px] font-extrabold text-muted mb-2">Invitationskode</label>
+                <input id="invite-code" value={code} onChange={(e) => setCode(e.target.value)} required placeholder="fx a1b2c3d4" className={cn(inputClass, 'font-mono tracking-wider')} autoFocus />
               </div>
-              {error && (
-                <p className="text-red-400 text-sm bg-red-400/10 rounded-lg px-3 py-2">{error}</p>
-              )}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-medium rounded-xl text-sm transition-colors"
-              >
-                {loading ? 'Joining...' : 'Join Home'}
-              </button>
-            </form>
-          )}
+            )}
+
+            {error && <p className="text-danger-ink text-sm font-bold bg-danger-soft rounded-xl px-3 py-2">{error}</p>}
+
+            <button type="submit" disabled={loading} className="h-12 rounded-2xl bg-accent text-ink font-extrabold text-[15px] shadow-float disabled:opacity-60 disabled:shadow-none">
+              {loading ? 'Et øjeblik…' : tab === 'create' ? 'Opret husstand' : 'Kom med'}
+            </button>
+          </form>
         </div>
       </div>
     </div>

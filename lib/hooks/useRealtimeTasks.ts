@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Task } from '@/lib/types'
 
-export function useRealtimeTasks(homeId: string, initial: Task[]): Task[] {
+export function useRealtimeTasks(homeId: string, initial: Task[]): [Task[], Dispatch<SetStateAction<Task[]>>] {
   const [tasks, setTasks] = useState<Task[]>(initial)
 
   useEffect(() => {
@@ -17,19 +17,13 @@ export function useRealtimeTasks(homeId: string, initial: Task[]): Task[] {
       .channel(`tasks:${homeId}`)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'tasks',
-          filter: `home_id=eq.${homeId}`,
-        },
+        { event: '*', schema: 'public', table: 'tasks', filter: `home_id=eq.${homeId}` },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setTasks((prev) => [payload.new as Task, ...prev])
+            const t = payload.new as Task
+            setTasks((prev) => (prev.some((x) => x.id === t.id) ? prev : [t, ...prev]))
           } else if (payload.eventType === 'UPDATE') {
-            setTasks((prev) =>
-              prev.map((t) => (t.id === payload.new.id ? { ...t, ...(payload.new as Task) } : t))
-            )
+            setTasks((prev) => prev.map((t) => (t.id === payload.new.id ? { ...t, ...(payload.new as Task) } : t)))
           } else if (payload.eventType === 'DELETE') {
             setTasks((prev) => prev.filter((t) => t.id !== payload.old.id))
           }
@@ -42,5 +36,5 @@ export function useRealtimeTasks(homeId: string, initial: Task[]): Task[] {
     }
   }, [homeId])
 
-  return tasks
+  return [tasks, setTasks]
 }

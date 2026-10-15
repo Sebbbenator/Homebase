@@ -1,16 +1,14 @@
-// Client-side push notification helpers
+// Klient-side push-hjælpere
 
 export async function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return null
-  const reg = await navigator.serviceWorker.register('/sw.js')
-  return reg
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null
+  return navigator.serviceWorker.register('/sw.js')
 }
 
 export async function subscribeToPush() {
   const reg = await registerServiceWorker()
   if (!reg) return null
 
-  // Check permission
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') return null
 
@@ -19,7 +17,6 @@ export async function subscribeToPush() {
     applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
   })
 
-  // Send subscription to our API
   await fetch('/api/push/subscribe', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -32,23 +29,12 @@ export async function subscribeToPush() {
 export async function unsubscribeFromPush() {
   const reg = await navigator.serviceWorker?.ready
   if (!reg) return
-
   const sub = await reg.pushManager.getSubscription()
   if (!sub) return
-
   await sub.unsubscribe()
-
   await fetch('/api/push/subscribe', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ endpoint: sub.endpoint }),
-  })
-}
-
-export async function sendPushToHome(homeId: string, title: string, body: string) {
-  await fetch('/api/push/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ homeId, title, body, url: '/dashboard' }),
   })
 }

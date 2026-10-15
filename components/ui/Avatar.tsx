@@ -1,67 +1,46 @@
-import { cn, getInitials } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 
-const COLORS = [
-  'bg-orange-600',
-  'bg-amber-600',
-  'bg-rose-600',
-  'bg-emerald-600',
-  'bg-cyan-600',
-  'bg-violet-600',
-]
+const TINTS = ['bg-accent-soft', 'bg-good-soft', 'bg-info-soft', 'bg-warn-soft']
 
-function getColor(str: string) {
+function tintFor(key: string) {
   let hash = 0
-  for (let i = 0; i < str.length; i++) hash += str.charCodeAt(i)
-  return COLORS[hash % COLORS.length]
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0
+  return TINTS[hash % TINTS.length]
 }
 
 interface AvatarProps {
-  email?: string
+  /** Stabil nøgle (user id) til farvevalg */
+  id?: string
   emoji?: string | null
-  displayName?: string | null
-  size?: 'sm' | 'md' | 'lg'
+  name?: string | null
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   className?: string
 }
 
-export function Avatar({ email, emoji, displayName, size = 'md', className }: AvatarProps) {
-  const label = displayName || email || '?'
+const SIZES = {
+  xs: 'w-6 h-6 text-[13px]',
+  sm: 'w-8 h-8 text-base',
+  md: 'w-10 h-10 text-xl',
+  lg: 'w-14 h-14 text-3xl',
+  xl: 'w-20 h-20 text-5xl',
+}
 
-  // Show emoji if available
-  if (emoji) {
-    return (
-      <div
-        className={cn(
-          'rounded-full flex items-center justify-center flex-shrink-0 bg-neutral-800',
-          {
-            'w-6 h-6 text-sm': size === 'sm',
-            'w-8 h-8 text-lg': size === 'md',
-            'w-10 h-10 text-xl': size === 'lg',
-          },
-          className
-        )}
-        title={label}
-      >
-        {emoji}
-      </div>
-    )
-  }
-
-  // Fallback to initials
+export function Avatar({ id, emoji, name, size = 'md', className }: AvatarProps) {
+  const label = name || '?'
+  const initial = label.trim().charAt(0).toUpperCase()
   return (
-    <div
+    <span
+      title={label}
+      aria-label={label}
       className={cn(
-        'rounded-full flex items-center justify-center font-semibold text-white flex-shrink-0',
-        getColor(label),
-        {
-          'w-6 h-6 text-[10px]': size === 'sm',
-          'w-8 h-8 text-xs': size === 'md',
-          'w-10 h-10 text-sm': size === 'lg',
-        },
+        'rounded-full inline-flex items-center justify-center flex-shrink-0 select-none leading-none',
+        tintFor(id || label),
+        SIZES[size],
+        !emoji && 'font-display font-bold text-ink',
         className
       )}
-      title={label}
     >
-      {getInitials(email || label)}
-    </div>
+      {emoji || initial}
+    </span>
   )
 }

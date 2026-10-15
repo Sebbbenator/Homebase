@@ -1,0 +1,45 @@
+'use client'
+
+import { cn } from '@/lib/utils'
+import { getFreshness } from '@/lib/freshness'
+import { getCategory, TONE_CHIP } from '@/lib/categories'
+import { FreshBar } from './FreshBar'
+import { CompleteButton } from './CompleteButton'
+import type { Task } from '@/lib/types'
+
+interface TaskRowProps {
+  task: Task
+  onOpen: (task: Task) => void
+  onComplete: (task: Task) => void
+  showCategory?: boolean
+  justDone?: boolean
+  isLast?: boolean
+  now?: Date
+}
+
+export function TaskRow({ task, onOpen, onComplete, showCategory, justDone, isLast, now }: TaskRowProps) {
+  const fresh = getFreshness(task, now)
+  const category = getCategory(task.category)
+
+  return (
+    <div className={cn('flex items-center gap-3 pl-4 pr-3 py-3', !isLast && 'border-b border-line')}>
+      <button
+        type="button"
+        onClick={() => onOpen(task)}
+        className="flex-1 min-w-0 text-left flex flex-col gap-1.5 min-h-[44px] justify-center"
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          <span className="text-[15px] font-extrabold text-ink truncate">{task.title}</span>
+          {showCategory && (
+            <span className={cn('text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0', TONE_CHIP[category.tone])}>
+              {category.label}
+            </span>
+          )}
+        </span>
+        <FreshBar fresh={fresh} />
+      </button>
+      <span className="text-xs font-extrabold text-muted flex-shrink-0">+{task.points}</span>
+      <CompleteButton state={fresh.state} label={task.title} onClick={() => onComplete(task)} justDone={justDone} />
+    </div>
+  )
+}
