@@ -38,6 +38,8 @@ function describe(action: string, title: string | null): { text: string; tone: s
       return { text: `slettede ${t}`, tone: 'text-danger-ink' }
     case 'undo':
       return { text: `fortrød ${t}`, tone: 'text-muted' }
+    case 'reopened':
+      return { text: `genåbnede ${t}`, tone: 'text-info-ink' }
     default:
       return { text: `${action} ${t}`, tone: 'text-muted' }
   }

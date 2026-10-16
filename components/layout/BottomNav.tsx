@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { House, CircleCheck, ShoppingBasket, UserRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -12,6 +12,7 @@ interface BottomNavProps {
 
 export function BottomNav({ tasksCount, shoppingCount }: BottomNavProps) {
   const pathname = usePathname()
+  const router = useRouter()
 
   const items = [
     { href: '/hjem', label: 'Hjem', icon: House, count: 0, countClass: '' },
@@ -32,6 +33,9 @@ export function BottomNav({ tasksCount, shoppingCount }: BottomNavProps) {
             <Link
               key={href}
               href={href}
+              prefetch
+              onTouchStart={() => router.prefetch(href)}
+              onMouseEnter={() => router.prefetch(href)}
               aria-current={active ? 'page' : undefined}
               className={cn(
                 'relative flex flex-col items-center justify-center gap-0.5 min-w-[68px] px-3 py-2 rounded-2xl text-[11px] font-extrabold transition-colors',

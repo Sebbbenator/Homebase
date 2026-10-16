@@ -9,13 +9,14 @@ import { TaskRow } from '@/components/tasks/TaskRow'
 import { TaskSheet } from '@/components/tasks/TaskSheet'
 import { TaskForm } from '@/components/tasks/TaskForm'
 import { Leaderboard } from './Leaderboard'
+import { WeeklySummarySheet } from './WeeklySummarySheet'
 import { useRealtimeTasks } from '@/lib/hooks/useRealtimeTasks'
 import { useRealtimeCompletions } from '@/lib/hooks/useRealtimeCompletions'
 import { useTaskActions } from '@/lib/hooks/useTaskActions'
-import { deleteTask } from '@/lib/actions/tasks'
+import { deleteTask, reopenTask } from '@/lib/actions/tasks'
 import { useToast } from '@/components/ui/Toast'
-import { compareByFreshness, getFreshness, FRESH_STYLE } from '@/lib/freshness'
-import { pointsByUser, rankOf, startOfWeek, weeklyStreak } from '@/lib/points'
+import { compareByFreshness, getFreshness, isActive, FRESH_STYLE } from '@/lib/freshness'
+import { helpersOf, pointsByUser, rankOf, startOfWeek, weeklyStreak } from '@/lib/points'
 import { cn, displayName, formatRelative, getGreeting } from '@/lib/utils'
 import type { HomeData } from '@/lib/data/home'
 import type { Task } from '@/lib/types'
@@ -36,7 +37,8 @@ export function HjemView({ data }: { data: HomeData }) {
   const me = data.profiles[data.userId]
   const myName = displayName(me, data.userEmail)
 
-  const sorted = useMemo(() => [...tasks].sort((a, b) => compareByFreshness(a, b, now)), [tasks, now])
+  const active = useMemo(() => tasks.filter(isActive), [tasks])
+  const sorted = useMemo(() => [...active].sort((a, b) => compareByFreshness(a, b, now)), [active, now])
   const needsNow = sorted.filter((t) => getFreshness(t, now).state === 'now')
   const soon = sorted.filter((t) => getFreshness(t, now).state === 'soon').slice(0, 4)
 
@@ -65,7 +67,7 @@ export function HjemView({ data }: { data: HomeData }) {
   const recent = completions.slice(0, 5)
   const openTask = openId ? tasks.find((t) => t.id === openId) ?? null : null
 
-  async function handleComplete(task: Task, helperId: string | null = null) {
+  async function handleComplete(task: Task, helperIds: string[] = []) {
     const wasHot = getFreshness(task, now).state === 'now'
     setJustDone(task.id)
     window.setTimeout(() => setJustDone(null), 700)
@@ -73,7 +75,7 @@ export function HjemView({ data }: { data: HomeData }) {
       setConfetti(true)
       window.setTimeout(() => setConfetti(false), 1000)
     }
-    return complete(task, helperId)
+    return complete(task, helperIds)
   }
 
   async function handleDelete(task: Task) {
@@ -87,12 +89,23 @@ export function HjemView({ data }: { data: HomeData }) {
     }
   }
 
+  async function handleReopen(task: Task) {
+    setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, is_completed: false } : t)))
+    try {
+      await reopenTask(task.id)
+    } catch {
+      setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, is_completed: true } : t)))
+      toast.show('Kunne ikke genåbne')
+    }
+  }
+
   return (
     <div className="max-w-lg mx-auto px-5 pt-6 flex flex-col gap-5">
       <Confetti show={confetti} />
+      <WeeklySummarySheet homeId={data.homeId} completions={completions} members={data.members} profiles={data.profiles} currentUserId={data.userId} />
 
       <header className="flex items-center justify-between gap-3">
-        <div className="flex flex-col">
+        <div className="flex flex-col min-w-0">
           <span className="text-sm font-bold text-muted">{getGreeting()},</span>
           <h1 className="font-display text-3xl font-bold leading-none truncate">{myName}</h1>
         </div>
@@ -126,7 +139,7 @@ export function HjemView({ data }: { data: HomeData }) {
           <div className="bg-good-soft rounded-card px-4 py-5 text-center">
             <p className="font-display text-lg font-semibold text-good-ink">Intet trænger lige nu</p>
             <p className="text-[13px] font-semibold text-body mt-1">
-              {tasks.length === 0 ? <Link href="/opgaver" className="underline">Opret husets første opgaver</Link> : 'Nyd det – appen siger til, når noget nærmer sig.'}
+              {active.length === 0 ? <Link href="/opgaver" className="underline">Opret husets første opgaver</Link> : 'Nyd det – appen siger til, når noget nærmer sig.'}
             </p>
           </div>
         ) : (
@@ -137,6 +150,7 @@ export function HjemView({ data }: { data: HomeData }) {
                 task={t}
                 now={now}
                 showCategory
+                profiles={data.profiles}
                 onOpen={(task) => setOpenId(task.id)}
                 onComplete={(task) => handleComplete(task)}
                 justDone={justDone === t.id}
@@ -171,7 +185,9 @@ export function HjemView({ data }: { data: HomeData }) {
                       <div className={cn('h-full rounded-full', FRESH_STYLE.soon.bar)} style={{ width: `${Math.round(f.ratio * 100)}%` }} />
                     </div>
                   </div>
-                  <span className="text-xs font-bold text-muted whitespace-nowrap">om {f.daysLeft} {f.daysLeft === 1 ? 'dag' : 'dage'}</span>
+                  <span className="text-xs font-bold text-muted whitespace-nowrap">
+                    {t.is_preset ? `om ${f.daysLeft} ${f.daysLeft === 1 ? 'dag' : 'dage'}` : f.label.toLowerCase()}
+                  </span>
                 </button>
               )
             })}
@@ -192,14 +208,14 @@ export function HjemView({ data }: { data: HomeData }) {
           <ul className="flex flex-col gap-2.5">
             {recent.map((c) => {
               const p = data.profiles[c.completed_by]
-              const h = c.helper_id ? data.profiles[c.helper_id] : undefined
+              const hs = helpersOf(c).map((h) => displayName(data.profiles[h]))
               const task = tasks.find((t) => t.id === c.task_id)
               return (
                 <li key={c.id} className="flex items-center gap-2.5">
                   <Avatar id={c.completed_by} emoji={p?.avatar_emoji} name={displayName(p)} size="sm" />
                   <span className="flex-1 min-w-0 text-[13px] font-semibold text-body truncate">
                     <strong className="text-ink">{displayName(p)}</strong> tog {task ? `"${task.title}"` : 'en opgave'}
-                    {h && <> med {displayName(h)}</>}
+                    {hs.length > 0 && <> med {hs.join(' og ')}</>}
                     <span className="text-good-ink font-extrabold"> +{c.points}</span>
                   </span>
                   <span className="text-[11px] font-bold text-faint whitespace-nowrap">{formatRelative(c.completed_at)}</span>
@@ -220,12 +236,16 @@ export function HjemView({ data }: { data: HomeData }) {
         onComplete={handleComplete}
         onEdit={(task) => { setOpenId(null); setEditTask(task); setFormOpen(true) }}
         onDelete={handleDelete}
+        onReopen={handleReopen}
       />
       <TaskForm
         open={formOpen}
         onClose={() => setFormOpen(false)}
         editTask={editTask}
         onSaved={(task) => setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)))}
+        members={data.members}
+        profiles={data.profiles}
+        currentUserId={data.userId}
       />
     </div>
   )

@@ -18,7 +18,7 @@ export async function loadHomeData(): Promise<HomeData> {
 
   const [{ data: home }, { data: tasks }, { data: members }, { data: completions }] = await Promise.all([
     supabase.from('homes').select().eq('id', homeId).maybeSingle(),
-    supabase.from('tasks').select().eq('home_id', homeId).eq('is_preset', true).order('title'),
+    supabase.from('tasks').select().eq('home_id', homeId).order('title'),
     supabase.from('home_members').select('id, home_id, user_id, joined_at').eq('home_id', homeId),
     supabase.from('preset_completions').select().eq('home_id', homeId).order('completed_at', { ascending: false }),
   ])
@@ -36,7 +36,15 @@ export async function loadHomeData(): Promise<HomeData> {
     userEmail: user.email ?? null,
     homeId,
     home: (home as Home | null) ?? null,
-    tasks: ((tasks ?? []) as Task[]).map((t) => ({ ...t, points: t.points ?? 10, category: t.category ?? 'other' })),
+    tasks: ((tasks ?? []) as Task[]).map((t) => ({
+      ...t,
+      points: t.points ?? 10,
+      category: t.category ?? 'other',
+      is_preset: t.is_preset ?? true,
+      is_completed: t.is_completed ?? false,
+      due_date: t.due_date ?? null,
+      assigned_to: t.assigned_to ?? null,
+    })),
     members: (members ?? []) as HomeMember[],
     profiles,
     completions: ((completions ?? []) as Completion[]).map((c) => ({ ...c, points: c.points ?? 10 })),

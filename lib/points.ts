@@ -4,6 +4,17 @@ export type Period = 'week' | 'month' | 'all'
 
 const WEEK = 7 * 86_400_000
 
+/** Alle hjælpere på en fuldførelse (helper_ids, med fallback til det gamle helper_id) */
+export function helpersOf(c: Pick<Completion, 'helper_id' | 'helper_ids'>): string[] {
+  if (c.helper_ids && c.helper_ids.length) return c.helper_ids
+  return c.helper_id ? [c.helper_id] : []
+}
+
+/** Deltog brugeren (som udfører eller hjælper)? */
+export function involves(c: Completion, userId: string) {
+  return c.completed_by === userId || helpersOf(c).includes(userId)
+}
+
 /** Mandag 00:00 i den uge `d` ligger i */
 export function startOfWeek(d = new Date()) {
   const date = new Date(d)
@@ -23,13 +34,15 @@ export function periodStart(period: Period, now = new Date()): Date | null {
   return null
 }
 
-/** Point pr. bruger – både den der gjorde det og hjælperen får point */
-export function pointsByUser(completions: Completion[], since: Date | null): Record<string, number> {
+/** Point pr. bruger – både den der gjorde det og alle hjælpere får point */
+export function pointsByUser(completions: Completion[], since: Date | null, until: Date | null = null): Record<string, number> {
   const out: Record<string, number> = {}
   for (const c of completions) {
-    if (since && new Date(c.completed_at) < since) continue
+    const t = new Date(c.completed_at)
+    if (since && t < since) continue
+    if (until && t >= until) continue
     out[c.completed_by] = (out[c.completed_by] ?? 0) + c.points
-    if (c.helper_id) out[c.helper_id] = (out[c.helper_id] ?? 0) + c.points
+    for (const h of helpersOf(c)) out[h] = (out[h] ?? 0) + c.points
   }
   return out
 }
@@ -46,7 +59,7 @@ export function rankOf(points: Record<string, number>, userId: string, memberIds
 export function weeklyStreak(completions: Completion[], userId: string, now = new Date()): number {
   const weeks = new Set<number>()
   for (const c of completions) {
-    if (c.completed_by !== userId && c.helper_id !== userId) continue
+    if (!involves(c, userId)) continue
     weeks.add(startOfWeek(new Date(c.completed_at)).getTime())
   }
   let cursor = startOfWeek(now).getTime()

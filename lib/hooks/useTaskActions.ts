@@ -23,9 +23,8 @@ export function useTaskActions({ currentUserId, setTasks, setCompletions }: Args
   const toast = useToast()
 
   const undo = useCallback(async (completionId: string) => {
-    let removed: Completion | undefined
     setCompletions((prev) => {
-      removed = prev.find((c) => c.id === completionId)
+      const removed = prev.find((c) => c.id === completionId)
       const next = prev.filter((c) => c.id !== completionId)
       if (removed) {
         const taskId = removed.task_id
@@ -33,7 +32,12 @@ export function useTaskActions({ currentUserId, setTasks, setCompletions }: Args
         setTasks((tasks) =>
           tasks.map((t) =>
             t.id === taskId
-              ? { ...t, last_completed_at: latest?.completed_at ?? null, last_completed_by: latest?.completed_by ?? null }
+              ? {
+                  ...t,
+                  last_completed_at: latest?.completed_at ?? null,
+                  last_completed_by: latest?.completed_by ?? null,
+                  is_completed: t.is_preset ? t.is_completed : false,
+                }
               : t
           )
         )
@@ -47,26 +51,34 @@ export function useTaskActions({ currentUserId, setTasks, setCompletions }: Args
     }
   }, [setCompletions, setTasks, toast])
 
-  const complete = useCallback(async (task: Task, helperId?: string | null) => {
+  const complete = useCallback(async (task: Task, helperIds: string[] = []) => {
     haptic()
     const now = new Date().toISOString()
     const tempId = `tmp-${task.id}-${Date.now()}`
+    const helpers = [...new Set(helperIds.filter((id) => id && id !== currentUserId))]
     const temp: Completion = {
       id: tempId,
       task_id: task.id,
       home_id: task.home_id,
       completed_by: currentUserId,
       completed_at: now,
-      helper_id: helperId && helperId !== currentUserId ? helperId : null,
+      helper_id: helpers[0] ?? null,
+      helper_ids: helpers,
       points: task.points,
     }
-    const before = { at: task.last_completed_at, by: task.last_completed_by }
+    const before = { at: task.last_completed_at, by: task.last_completed_by, done: task.is_completed }
 
     setCompletions((prev) => [temp, ...prev])
-    setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, last_completed_at: now, last_completed_by: currentUserId } : t)))
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === task.id
+          ? { ...t, last_completed_at: now, last_completed_by: currentUserId, is_completed: t.is_preset ? t.is_completed : true }
+          : t
+      )
+    )
 
     try {
-      const real = await completeTask(task.id, temp.helper_id)
+      const real = await completeTask(task.id, helpers)
       setCompletions((prev) => {
         const withoutTemp = prev.filter((c) => c.id !== tempId)
         return withoutTemp.some((c) => c.id === real.id) ? withoutTemp : [real, ...withoutTemp]
@@ -77,7 +89,9 @@ export function useTaskActions({ currentUserId, setTasks, setCompletions }: Args
       return real
     } catch {
       setCompletions((prev) => prev.filter((c) => c.id !== tempId))
-      setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, last_completed_at: before.at, last_completed_by: before.by } : t)))
+      setTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, last_completed_at: before.at, last_completed_by: before.by, is_completed: before.done } : t))
+      )
       toast.show('Kunne ikke gemme – tjek forbindelsen')
       return null
     }

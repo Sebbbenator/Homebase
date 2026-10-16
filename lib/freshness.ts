@@ -20,15 +20,45 @@ export function daysBetween(from: Date, to: Date) {
   return Math.floor((to.getTime() - from.getTime()) / DAY)
 }
 
-export function getFreshness(task: Task, now = new Date()): Freshness {
-  const neverDone = !task.last_completed_at
-  const base = new Date(task.last_completed_at ?? task.created_at)
-  const daysSince = Math.max(0, daysBetween(base, now))
-  const sinceLabel = neverDone
+/** Normale opgaver er altid aktive; engangsopgaver kun indtil de er klaret */
+export function isActive(task: Pick<Task, 'is_preset' | 'is_completed'>) {
+  return task.is_preset || !task.is_completed
+}
+
+function midnight(d: Date) {
+  const m = new Date(d)
+  m.setHours(0, 0, 0, 0)
+  return m
+}
+
+function sinceLabelOf(neverDone: boolean, daysSince: number) {
+  return neverDone
     ? 'Aldrig gjort'
     : daysSince === 0 ? 'Gjort i dag'
     : daysSince === 1 ? 'Gjort i går'
     : `${daysSince} dage siden`
+}
+
+export function getFreshness(task: Task, now = new Date()): Freshness {
+  const neverDone = !task.last_completed_at
+  const base = new Date(task.last_completed_at ?? task.created_at)
+  const daysSince = Math.max(0, daysBetween(base, now))
+  const sinceLabel = sinceLabelOf(neverDone, daysSince)
+
+  // Engangsopgave ("Speciel"): skal gøres én gang, evt. med deadline
+  if (!task.is_preset) {
+    if (task.is_completed) {
+      return { state: 'none', ratio: 0, daysSince, daysOver: 0, daysLeft: 0, label: `Klaret · ${sinceLabel.toLowerCase()}`, neverDone }
+    }
+    if (task.due_date) {
+      const diff = daysBetween(midnight(now), midnight(new Date(task.due_date)))
+      if (diff < 0) return { state: 'now', ratio: 1, daysSince, daysOver: -diff, daysLeft: 0, neverDone, label: `${-diff} ${-diff === 1 ? 'dag' : 'dage'} over deadline` }
+      if (diff === 0) return { state: 'now', ratio: 1, daysSince, daysOver: 0, daysLeft: 0, neverDone, label: 'Deadline i dag' }
+      if (diff <= 2) return { state: 'soon', ratio: 0.85, daysSince, daysOver: 0, daysLeft: diff, neverDone, label: diff === 1 ? 'Deadline i morgen' : `Deadline om ${diff} dage` }
+      return { state: 'ok', ratio: 0.3, daysSince, daysOver: 0, daysLeft: diff, neverDone, label: `Deadline ${new Date(task.due_date).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' })}` }
+    }
+    return { state: 'now', ratio: 1, daysSince, daysOver: 0, daysLeft: 0, neverDone, label: 'Skal gøres · engangsopgave' }
+  }
 
   if (!task.interval_days) {
     return {

@@ -32,6 +32,10 @@ export interface Task {
   interval_days: number | null
   last_completed_at: string | null
   last_completed_by: string | null
+  /** Engangsopgaver (is_preset = false): klaret? */
+  is_completed: boolean
+  due_date: string | null
+  assigned_to: string | null
 }
 
 export interface Completion {
@@ -41,6 +45,7 @@ export interface Completion {
   completed_by: string
   completed_at: string
   helper_id: string | null
+  helper_ids: string[] | null
   points: number
 }
 

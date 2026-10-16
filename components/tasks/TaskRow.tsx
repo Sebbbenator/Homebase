@@ -1,25 +1,29 @@
 'use client'
 
-import { cn } from '@/lib/utils'
+import { Sparkles } from 'lucide-react'
+import { cn, displayName } from '@/lib/utils'
 import { getFreshness } from '@/lib/freshness'
 import { getCategory, TONE_CHIP } from '@/lib/categories'
+import { Avatar } from '@/components/ui/Avatar'
 import { FreshBar } from './FreshBar'
 import { CompleteButton } from './CompleteButton'
-import type { Task } from '@/lib/types'
+import type { Profiles, Task } from '@/lib/types'
 
 interface TaskRowProps {
   task: Task
   onOpen: (task: Task) => void
   onComplete: (task: Task) => void
   showCategory?: boolean
+  profiles?: Profiles
   justDone?: boolean
   isLast?: boolean
   now?: Date
 }
 
-export function TaskRow({ task, onOpen, onComplete, showCategory, justDone, isLast, now }: TaskRowProps) {
+export function TaskRow({ task, onOpen, onComplete, showCategory, profiles, justDone, isLast, now }: TaskRowProps) {
   const fresh = getFreshness(task, now)
   const category = getCategory(task.category)
+  const assignee = !task.is_preset && task.assigned_to ? profiles?.[task.assigned_to] : undefined
 
   return (
     <div className={cn('flex items-center gap-3 pl-4 pr-3 py-3', !isLast && 'border-b border-line')}>
@@ -30,10 +34,18 @@ export function TaskRow({ task, onOpen, onComplete, showCategory, justDone, isLa
       >
         <span className="flex items-center gap-2 min-w-0">
           <span className="text-[15px] font-extrabold text-ink truncate">{task.title}</span>
-          {showCategory && (
+          {!task.is_preset && (
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 bg-info-soft text-info-ink flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> Speciel
+            </span>
+          )}
+          {showCategory && task.is_preset && (
             <span className={cn('text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0', TONE_CHIP[category.tone])}>
               {category.label}
             </span>
+          )}
+          {assignee && (
+            <Avatar id={task.assigned_to!} emoji={assignee.avatar_emoji} name={displayName(assignee)} size="xs" className="flex-shrink-0" />
           )}
         </span>
         <FreshBar fresh={fresh} />

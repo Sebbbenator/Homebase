@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useSyncExternalStore, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -16,9 +16,13 @@ interface SheetProps {
 const noop = () => () => {}
 const useIsClient = () => useSyncExternalStore(noop, () => true, () => false)
 
-/** Bottom sheet – glider op fra bunden på mobil, centreret kort på større skærme */
+/** Bottom sheet – glider op fra bunden på mobil (swipe ned for at lukke), centreret kort på større skærme */
 export function Sheet({ open, onClose, title, children, className }: SheetProps) {
   const isClient = useIsClient()
+  const [dragY, setDragY] = useState(0)
+  const dragging = useRef(false)
+  const startY = useRef(0)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
@@ -33,6 +37,25 @@ export function Sheet({ open, onClose, title, children, className }: SheetProps)
 
   if (!open || !isClient) return null
 
+  function onTouchStart(e: React.TouchEvent) {
+    // Træk kun når indholdet er scrollet helt op – ellers skal fingeren scrolle
+    if (scrollRef.current && scrollRef.current.scrollTop > 0) return
+    startY.current = e.touches[0].clientY
+    dragging.current = true
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (!dragging.current) return
+    const delta = e.touches[0].clientY - startY.current
+    if (delta > 0) setDragY(delta)
+  }
+  function onTouchEnd() {
+    if (!dragging.current) return
+    dragging.current = false
+    const shouldClose = dragY > 110
+    setDragY(0)
+    if (shouldClose) onClose()
+  }
+
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <button
@@ -44,8 +67,12 @@ export function Sheet({ open, onClose, title, children, className }: SheetProps)
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={dragY ? { transform: `translateY(${dragY}px)`, transition: 'none' } : undefined}
         className={cn(
-          'anim-sheet relative w-full sm:max-w-md max-h-[92dvh] sm:max-h-[85vh] flex flex-col',
+          'anim-sheet relative w-full sm:max-w-md max-h-[92dvh] sm:max-h-[85vh] flex flex-col transition-transform duration-200',
           'bg-card text-ink rounded-t-[28px] sm:rounded-[28px] shadow-[0_-8px_30px_rgba(42,33,27,0.18)]',
           className
         )}
@@ -65,7 +92,7 @@ export function Sheet({ open, onClose, title, children, className }: SheetProps)
             </button>
           </div>
         )}
-        <div className="px-5 pb-5 safe-bottom overflow-y-auto flex-1">{children}</div>
+        <div ref={scrollRef} className="px-5 pb-5 safe-bottom overflow-y-auto flex-1">{children}</div>
       </div>
     </div>,
     document.body

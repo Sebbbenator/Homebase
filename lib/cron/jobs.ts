@@ -1,6 +1,6 @@
 import { admin, getHomePrefs, isQuiet, localTime, notifyHome } from '@/lib/notify'
-import { getFreshness } from '@/lib/freshness'
-import { startOfWeek, weeklyStreak } from '@/lib/points'
+import { getFreshness, isActive } from '@/lib/freshness'
+import { involves, startOfWeek, weeklyStreak } from '@/lib/points'
 import { buildWeeklyText } from '@/lib/scoreboard'
 import { pushToUsers } from '@/lib/push-server'
 import type { Completion, ShoppingItem, Task } from '@/lib/types'
@@ -37,14 +37,14 @@ async function runHome(homeId: string, now: Date): Promise<Result> {
 
   const since = new Date(now.getTime() - 60 * 86_400_000).toISOString()
   const [{ data: tasksRaw }, { data: completionsRaw }, { data: runs }, { data: profileRows }, { data: members }] = await Promise.all([
-    supabase.from('tasks').select().eq('home_id', homeId).eq('is_preset', true),
+    supabase.from('tasks').select().eq('home_id', homeId),
     supabase.from('preset_completions').select().eq('home_id', homeId).gte('completed_at', since),
     supabase.from('cron_runs').select('job').eq('home_id', homeId).eq('run_date', t.dateKey),
     supabase.from('profiles').select('id, display_name, avatar_emoji'),
     supabase.from('home_members').select('user_id').eq('home_id', homeId),
   ])
 
-  const tasks = (tasksRaw ?? []) as TaskRow[]
+  const tasks = ((tasksRaw ?? []) as TaskRow[]).filter(isActive)
   const completions = (completionsRaw ?? []) as Completion[]
   const memberIds = (members ?? []).map((m) => m.user_id)
   const names: Record<string, string> = {}
@@ -142,9 +142,7 @@ async function runHome(homeId: string, now: Date): Promise<Result> {
       const weekStart = startOfWeek(now).getTime()
       let sent = 0
       for (const id of memberIds) {
-        const doneThisWeek = completions.some(
-          (c) => (c.completed_by === id || c.helper_id === id) && new Date(c.completed_at).getTime() >= weekStart
-        )
+        const doneThisWeek = completions.some((c) => involves(c, id) && new Date(c.completed_at).getTime() >= weekStart)
         const streak = weeklyStreak(completions, id, now)
         if (doneThisWeek || streak < 1) continue
         const r = await notifyHome(
