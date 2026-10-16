@@ -62,6 +62,18 @@ export interface ShoppingItem {
   added_by: string
   is_purchased: boolean
   created_at: string
+  section: string
+}
+
+export interface ShoppingHistory {
+  id: string
+  home_id: string
+  name: string
+  name_key: string
+  section: string
+  last_quantity: string | null
+  times: number
+  last_used_at: string
 }
 
 export type Profiles = Record<string, Profile>
