@@ -1,6 +1,6 @@
 'use client'
 
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Repeat } from 'lucide-react'
 import { cn, displayName } from '@/lib/utils'
 import { getFreshness } from '@/lib/freshness'
 import { getCategory, TONE_CHIP } from '@/lib/categories'
@@ -15,15 +15,20 @@ interface TaskRowProps {
   onComplete: (task: Task) => void
   showCategory?: boolean
   profiles?: Profiles
+  /** Hvis tur er det (rotation) */
+  turnUserId?: string | null
+  currentUserId?: string
   justDone?: boolean
   isLast?: boolean
   now?: Date
 }
 
-export function TaskRow({ task, onOpen, onComplete, showCategory, profiles, justDone, isLast, now }: TaskRowProps) {
+export function TaskRow({ task, onOpen, onComplete, showCategory, profiles, turnUserId, currentUserId, justDone, isLast, now }: TaskRowProps) {
   const fresh = getFreshness(task, now)
   const category = getCategory(task.category)
   const assignee = !task.is_preset && task.assigned_to ? profiles?.[task.assigned_to] : undefined
+  const myTurn = !!turnUserId && turnUserId === currentUserId
+  const turnName = turnUserId && !myTurn ? displayName(profiles?.[turnUserId]) : null
 
   return (
     <div className={cn('flex items-center gap-3 pl-4 pr-3 py-3', !isLast && 'border-b border-line')}>
@@ -42,6 +47,16 @@ export function TaskRow({ task, onOpen, onComplete, showCategory, profiles, just
           {showCategory && task.is_preset && (
             <span className={cn('text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0', TONE_CHIP[category.tone])}>
               {category.label}
+            </span>
+          )}
+          {myTurn && (
+            <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full flex-shrink-0 bg-info text-white flex items-center gap-1">
+              <Repeat className="w-3 h-3" /> Din tur
+            </span>
+          )}
+          {turnName && (
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 bg-soft text-muted flex items-center gap-1">
+              <Repeat className="w-3 h-3" /> {turnName}s tur
             </span>
           )}
           {assignee && (

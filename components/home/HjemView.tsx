@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Flame, ChevronRight } from 'lucide-react'
+import { Flame, ChevronRight, Gift, Recycle, Palmtree } from 'lucide-react'
 import { Avatar } from '@/components/ui/Avatar'
 import { Confetti } from '@/components/ui/Confetti'
 import { TaskRow } from '@/components/tasks/TaskRow'
@@ -10,6 +10,7 @@ import { TaskSheet } from '@/components/tasks/TaskSheet'
 import { TaskForm } from '@/components/tasks/TaskForm'
 import { Leaderboard } from './Leaderboard'
 import { WeeklySummarySheet } from './WeeklySummarySheet'
+import { ReactionButton } from './ReactionButton'
 import { useRealtimeTasks } from '@/lib/hooks/useRealtimeTasks'
 import { useRealtimeCompletions } from '@/lib/hooks/useRealtimeCompletions'
 import { useTaskActions } from '@/lib/hooks/useTaskActions'
@@ -17,11 +18,18 @@ import { deleteTask, reopenTask } from '@/lib/actions/tasks'
 import { useToast } from '@/components/ui/Toast'
 import { compareByFreshness, getFreshness, isActive, FRESH_STYLE } from '@/lib/freshness'
 import { helpersOf, pointsByUser, rankOf, startOfWeek, weeklyStreak } from '@/lib/points'
-import { cn, displayName, formatRelative, getGreeting } from '@/lib/utils'
+import { dateKey, nextUp, upcomingAbsences } from '@/lib/rotation'
+import { relativeDay } from '@/lib/waste'
+import { cn, displayName, formatDate, formatRelative, getGreeting } from '@/lib/utils'
 import type { HomeData } from '@/lib/data/home'
 import type { Task } from '@/lib/types'
 
-export function HjemView({ data }: { data: HomeData }) {
+interface HjemViewProps {
+  data: HomeData
+  waste?: { date: string; summaries: string[] }[]
+}
+
+export function HjemView({ data, waste = [] }: HjemViewProps) {
   const [tasks, setTasks] = useRealtimeTasks(data.homeId, data.tasks)
   const [completions, setCompletions] = useRealtimeCompletions(data.homeId, data.completions)
   const { complete } = useTaskActions({ currentUserId: data.userId, setTasks, setCompletions })
@@ -34,6 +42,7 @@ export function HjemView({ data }: { data: HomeData }) {
   const [confetti, setConfetti] = useState(false)
 
   const now = useMemo(() => new Date(), [])
+  const today = dateKey(now)
   const me = data.profiles[data.userId]
   const myName = displayName(me, data.userEmail)
 
@@ -42,11 +51,22 @@ export function HjemView({ data }: { data: HomeData }) {
   const needsNow = sorted.filter((t) => getFreshness(t, now).state === 'now')
   const soon = sorted.filter((t) => getFreshness(t, now).state === 'soon').slice(0, 4)
 
+  const turns = useMemo(() => {
+    const map: Record<string, string | null> = {}
+    for (const t of tasks) if (t.rotation) map[t.id] = nextUp(t, completions, data.members, data.absences, now)
+    return map
+  }, [tasks, completions, data.members, data.absences, now])
+
   const memberIds = data.members.map((m) => m.user_id)
   const weekPoints = pointsByUser(completions, startOfWeek(now))
   const { rank, total, sorted: ranking } = rankOf(weekPoints, data.userId, memberIds)
   const myWeek = weekPoints[data.userId] ?? 0
   const streak = weeklyStreak(completions, data.userId, now)
+  const earnedAll = pointsByUser(completions, null)[data.userId] ?? 0
+  const spent = data.claims.filter((c) => c.user_id === data.userId).reduce((s, c) => s + c.cost, 0)
+  const balance = earnedAll - spent
+
+  const absences = useMemo(() => upcomingAbsences(data.absences, today), [data.absences, today])
 
   const hint = useMemo(() => {
     const leader = ranking[0]
@@ -58,11 +78,12 @@ export function HjemView({ data }: { data: HomeData }) {
       return gap === 0 ? `Du deler førstepladsen med ${displayName(data.profiles[runnerUp.id])}.` : `Du fører med ${gap} point. Hold fast!`
     }
     const gap = leader.pts - myWeek
-    const suggestion = needsNow[0] ?? soon[0]
+    const myTurnTask = needsNow.find((t) => turns[t.id] === data.userId)
+    const suggestion = myTurnTask ?? needsNow[0] ?? soon[0]
     if (!suggestion) return `Du er ${gap} point efter ${displayName(data.profiles[leader.id])}.`
     const verb = suggestion.points > gap ? 'så fører du' : suggestion.points === gap ? 'så er I lige' : 'så haler du ind'
     return `Du er ${gap} point efter ${displayName(data.profiles[leader.id])}. Tag "${suggestion.title}" (+${suggestion.points}), ${verb}.`
-  }, [ranking, myWeek, needsNow, soon, data.userId, data.profiles])
+  }, [ranking, myWeek, needsNow, soon, turns, data.userId, data.profiles])
 
   const recent = completions.slice(0, 5)
   const openTask = openId ? tasks.find((t) => t.id === openId) ?? null : null
@@ -114,6 +135,34 @@ export function HjemView({ data }: { data: HomeData }) {
         </Link>
       </header>
 
+      {(absences.length > 0 || waste.length > 0) && (
+        <div className="flex flex-col gap-2 -mt-1">
+          {absences.map((a) => {
+            const p = data.profiles[a.user_id]
+            const isMe = a.user_id === data.userId
+            const started = a.from_date <= today
+            return (
+              <div key={a.id} className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-info-soft text-[13px] font-bold text-body">
+                <Palmtree className="w-4 h-4 text-info-ink flex-shrink-0" />
+                <span className="flex-1 min-w-0 truncate">
+                  <strong className="text-ink">{isMe ? 'Du' : displayName(p)}</strong> {started ? 'er væk til' : `er væk ${formatDate(a.from_date)} –`} {formatDate(a.to_date)}
+                  {a.note && <span className="text-muted"> · {a.note}</span>}
+                </span>
+              </div>
+            )
+          })}
+          {waste.length > 0 && (
+            <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-good-soft text-[13px] font-bold text-body">
+              <Recycle className="w-4 h-4 text-good-ink flex-shrink-0" />
+              <span className="flex-1 min-w-0 truncate">
+                <strong className="text-ink">{waste[0].summaries.join(' + ')}</strong> hentes {relativeDay(waste[0].date, today)}
+                {waste[1] && <span className="text-muted"> · {waste[1].summaries.join(' + ')} {relativeDay(waste[1].date, today)}</span>}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       <section className="bg-card rounded-card shadow-card p-4 flex flex-col gap-3">
         <div className="grid grid-cols-3 gap-2">
           <Stat value={myWeek} label="point i ugen" bg="bg-accent-soft" color="text-accent-ink" />
@@ -151,6 +200,8 @@ export function HjemView({ data }: { data: HomeData }) {
                 now={now}
                 showCategory
                 profiles={data.profiles}
+                turnUserId={turns[t.id]}
+                currentUserId={data.userId}
                 onOpen={(task) => setOpenId(task.id)}
                 onComplete={(task) => handleComplete(task)}
                 justDone={justDone === t.id}
@@ -180,7 +231,10 @@ export function HjemView({ data }: { data: HomeData }) {
                   className={cn('w-full flex items-center gap-3 px-4 py-3 text-left', i < soon.length - 1 && 'border-b border-line')}
                 >
                   <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                    <span className="text-sm font-extrabold truncate">{t.title}</span>
+                    <span className="text-sm font-extrabold truncate">
+                      {t.title}
+                      {turns[t.id] === data.userId && <span className="ml-2 text-[11px] font-extrabold text-info-ink">Din tur</span>}
+                    </span>
                     <div className="h-1.5 rounded-full bg-soft overflow-hidden">
                       <div className={cn('h-full rounded-full', FRESH_STYLE.soon.bar)} style={{ width: `${Math.round(f.ratio * 100)}%` }} />
                     </div>
@@ -197,6 +251,14 @@ export function HjemView({ data }: { data: HomeData }) {
 
       <Leaderboard completions={completions} members={data.members} profiles={data.profiles} currentUserId={data.userId} />
 
+      <Link href="/mig/praemier" className="flex items-center gap-3 px-4 py-3 rounded-card bg-warn-soft">
+        <Gift className="w-5 h-5 text-warn-ink flex-shrink-0" />
+        <span className="flex-1 min-w-0 text-[13px] font-bold text-body">
+          Din saldo: <strong className="text-ink">{balance} point</strong>{spent > 0 && <span className="text-muted"> · {spent} brugt på præmier</span>}
+        </span>
+        <span className="text-[13px] font-extrabold text-warn-ink flex items-center">Præmier <ChevronRight className="w-4 h-4" /></span>
+      </Link>
+
       {recent.length > 0 && (
         <section className="flex flex-col gap-2.5 pb-2">
           <div className="flex items-center justify-between">
@@ -210,6 +272,7 @@ export function HjemView({ data }: { data: HomeData }) {
               const p = data.profiles[c.completed_by]
               const hs = helpersOf(c).map((h) => displayName(data.profiles[h]))
               const task = tasks.find((t) => t.id === c.task_id)
+              const mine = c.completed_by === data.userId
               return (
                 <li key={c.id} className="flex items-center gap-2.5">
                   <Avatar id={c.completed_by} emoji={p?.avatar_emoji} name={displayName(p)} size="sm" />
@@ -218,6 +281,13 @@ export function HjemView({ data }: { data: HomeData }) {
                     {hs.length > 0 && <> med {hs.join(' og ')}</>}
                     <span className="text-good-ink font-extrabold"> +{c.points}</span>
                   </span>
+                  <ReactionButton
+                    completionId={c.id}
+                    reactions={data.reactions.filter((r) => r.completion_id === c.id)}
+                    currentUserId={data.userId}
+                    profiles={data.profiles}
+                    disabled={mine}
+                  />
                   <span className="text-[11px] font-bold text-faint whitespace-nowrap">{formatRelative(c.completed_at)}</span>
                 </li>
               )
@@ -232,6 +302,7 @@ export function HjemView({ data }: { data: HomeData }) {
         members={data.members}
         profiles={data.profiles}
         currentUserId={data.userId}
+        turnUserId={openTask ? turns[openTask.id] : null}
         onClose={() => setOpenId(null)}
         onComplete={handleComplete}
         onEdit={(task) => { setOpenId(null); setEditTask(task); setFormOpen(true) }}

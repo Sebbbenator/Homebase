@@ -42,6 +42,7 @@ export function TaskForm({ open, onClose, editTask, onSaved, defaultKind = 'norm
   const [customInterval, setCustomInterval] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [assignedTo, setAssignedTo] = useState<string>('')
+  const [rotation, setRotation] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -59,6 +60,7 @@ export function TaskForm({ open, onClose, editTask, onSaved, defaultKind = 'norm
     setCustomInterval(iv && !INTERVAL_PRESETS.some((p) => p.days === iv) ? String(iv) : '')
     setDueDate(editTask?.due_date ?? '')
     setAssignedTo(editTask?.assigned_to ?? '')
+    setRotation(editTask?.rotation ?? false)
     setError('')
   }, [open, editTask, defaultKind])
 
@@ -70,7 +72,7 @@ export function TaskForm({ open, onClose, editTask, onSaved, defaultKind = 'norm
     try {
       const base = { title: title.trim(), description: description.trim() || null, points, category }
       const input = kind === 'normal'
-        ? { ...base, is_preset: true, interval_days: interval }
+        ? { ...base, is_preset: true, interval_days: interval, rotation }
         : { ...base, is_preset: false, due_date: dueDate || null, assigned_to: assignedTo || null }
       const saved = isEdit && editTask ? await updateTask(editTask.id, input) : await createTask(input)
       onSaved?.(saved)
@@ -160,6 +162,23 @@ export function TaskForm({ open, onClose, editTask, onSaved, defaultKind = 'norm
                 className={cn(numberClass, 'w-28')}
               />
             </div>
+            {members.length > 1 && (
+              <button
+                type="button"
+                role="switch"
+                aria-checked={rotation}
+                onClick={() => setRotation((v) => !v)}
+                className="mt-3 w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-soft text-left"
+              >
+                <span className="flex-1 min-w-0 flex flex-col gap-0.5">
+                  <span className="text-sm font-extrabold">Skiftes til at gøre den</span>
+                  <span className="text-xs font-semibold text-muted">Appen viser, hvis tur det er – den der har gjort den færrest gange</span>
+                </span>
+                <span className={cn('w-[50px] h-[30px] rounded-full p-[3px] flex items-center transition-colors flex-shrink-0', rotation ? 'bg-good justify-end' : 'bg-line justify-start')}>
+                  <span className="w-6 h-6 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.25)]" />
+                </span>
+              </button>
+            )}
           </div>
         ) : (
           <>

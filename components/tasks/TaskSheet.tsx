@@ -16,6 +16,8 @@ interface TaskSheetProps {
   members: HomeMember[]
   profiles: Profiles
   currentUserId: string
+  /** Hvis tur er det (rotation) */
+  turnUserId?: string | null
   onClose: () => void
   onComplete: (task: Task, helperIds: string[]) => Promise<unknown>
   onEdit: (task: Task) => void
@@ -36,7 +38,7 @@ export function TaskSheet({ task, onClose, ...rest }: TaskSheetProps) {
   )
 }
 
-function TaskSheetBody({ task, completions, members, profiles, currentUserId, onClose, onComplete, onEdit, onDelete, onReopen }: TaskSheetProps & { task: Task }) {
+function TaskSheetBody({ task, completions, members, profiles, currentUserId, turnUserId, onClose, onComplete, onEdit, onDelete, onReopen }: TaskSheetProps & { task: Task }) {
   const [helpers, setHelpers] = useState<string[]>([])
   const [done, setDone] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -112,6 +114,13 @@ function TaskSheetBody({ task, completions, members, profiles, currentUserId, on
             <span className={cn('text-[11px] font-extrabold px-2.5 py-1 rounded-full', TONE_CHIP[category.tone])}>{category.label}</span>
           </div>
           {task.description && <p className="text-sm font-semibold text-muted">{task.description}</p>}
+          {task.rotation && turnUserId && (
+            <span className="flex items-center gap-1.5 text-[13px] font-bold text-body">
+              <Avatar id={turnUserId} emoji={profiles[turnUserId]?.avatar_emoji} name={displayName(profiles[turnUserId])} size="xs" />
+              {turnUserId === currentUserId ? 'Det er din tur' : `Det er ${displayName(profiles[turnUserId])}s tur`}
+              <span className="text-faint font-semibold">· rotation</span>
+            </span>
+          )}
           {assignee && (
             <span className="flex items-center gap-1.5 text-[13px] font-bold text-body">
               <Avatar id={task.assigned_to!} emoji={assignee.avatar_emoji} name={displayName(assignee)} size="xs" />

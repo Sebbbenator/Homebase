@@ -3,6 +3,63 @@ export interface Home {
   name: string
   invite_code: string
   created_at: string
+  waste_ics_url?: string | null
+}
+
+export interface Reward {
+  id: string
+  home_id: string
+  title: string
+  emoji: string
+  cost: number
+  created_by: string
+  active: boolean
+  created_at: string
+}
+
+export interface RewardClaim {
+  id: string
+  home_id: string
+  reward_id: string | null
+  user_id: string
+  title: string
+  cost: number
+  created_at: string
+}
+
+export interface Reaction {
+  id: string
+  completion_id: string
+  home_id: string
+  user_id: string
+  emoji: string
+  created_at: string
+}
+
+export interface Note {
+  id: string
+  home_id: string
+  title: string
+  body: string | null
+  pinned: boolean
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Absence {
+  id: string
+  home_id: string
+  user_id: string
+  from_date: string
+  to_date: string
+  note: string | null
+  created_at: string
+}
+
+export interface WasteEvent {
+  date: string
+  summary: string
 }
 
 export interface HomeMember {
@@ -36,6 +93,8 @@ export interface Task {
   is_completed: boolean
   due_date: string | null
   assigned_to: string | null
+  /** Skiftes til at gøre opgaven ("din tur") */
+  rotation: boolean
 }
 
 export interface Completion {
@@ -94,6 +153,8 @@ export interface NotificationPrefs {
   evening_reminder: boolean
   weekly_summary: boolean
   streak_warning: boolean
+  reactions: boolean
+  waste: boolean
   quiet_start: string
   quiet_end: string
 }
@@ -110,6 +171,8 @@ export const DEFAULT_PREFS: Omit<NotificationPrefs, 'user_id'> = {
   evening_reminder: true,
   weekly_summary: true,
   streak_warning: true,
+  reactions: true,
+  waste: true,
   quiet_start: '22:00',
   quiet_end: '07:00',
 }

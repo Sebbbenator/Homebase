@@ -14,6 +14,7 @@ import { deleteTask, reopenTask } from '@/lib/actions/tasks'
 import { useToast } from '@/components/ui/Toast'
 import { CATEGORIES } from '@/lib/categories'
 import { compareByFreshness, getFreshness, isActive } from '@/lib/freshness'
+import { nextUp } from '@/lib/rotation'
 import { cn, displayName, formatDate } from '@/lib/utils'
 import type { HomeData } from '@/lib/data/home'
 import type { Task } from '@/lib/types'
@@ -47,6 +48,12 @@ export function OpgaverView({ data, initialOpenId, initialFilter, initialTab }: 
   const [showDone, setShowDone] = useState(false)
 
   const now = useMemo(() => new Date(), [])
+
+  const turns = useMemo(() => {
+    const map: Record<string, string | null> = {}
+    for (const t of tasks) if (t.rotation) map[t.id] = nextUp(t, completions, data.members, data.absences, now)
+    return map
+  }, [tasks, completions, data.members, data.absences, now])
 
   const normal = useMemo(() => tasks.filter((t) => t.is_preset), [tasks])
   const specialOpen = useMemo(() => [...tasks.filter((t) => !t.is_preset && !t.is_completed)].sort((a, b) => compareByFreshness(a, b, now)), [tasks, now])
@@ -195,6 +202,9 @@ export function OpgaverView({ data, initialOpenId, initialFilter, initialTab }: 
                     key={t.id}
                     task={t}
                     now={now}
+                    profiles={data.profiles}
+                    turnUserId={turns[t.id]}
+                    currentUserId={data.userId}
                     onOpen={(task) => setOpenId(task.id)}
                     onComplete={(task) => handleComplete(task)}
                     justDone={justDone === t.id}
@@ -288,6 +298,7 @@ export function OpgaverView({ data, initialOpenId, initialFilter, initialTab }: 
         members={data.members}
         profiles={data.profiles}
         currentUserId={data.userId}
+        turnUserId={openTask ? turns[openTask.id] : null}
         onClose={() => setOpenId(null)}
         onComplete={handleComplete}
         onEdit={(task) => { setOpenId(null); setEditTask(task); setFormOpen(true) }}

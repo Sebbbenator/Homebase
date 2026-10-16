@@ -15,6 +15,7 @@ const INSTANT: Row[] = [
   { key: 'helper_mention', label: 'Du blev nævnt som hjælper', sub: 'Når du får point for at hjælpe' },
   { key: 'rank_change', label: 'Nogen overhalede dig', sub: 'Når du mister førstepladsen i ugen' },
   { key: 'shopping', label: 'Indkøb', sub: 'Nye varer (samlet), nogen handler, og fredagsliste' },
+  { key: 'reactions', label: 'Reaktioner', sub: 'Når nogen klapper af din indsats 👏' },
 ]
 
 const SCHEDULED: Row[] = [
@@ -22,6 +23,7 @@ const SCHEDULED: Row[] = [
   { key: 'evening_reminder', label: 'Aftenpåmindelse', sub: 'Kl. 19 – opgaver der er mindst en dag over' },
   { key: 'weekly_summary', label: 'Ugens opsummering', sub: 'Søndag kl. 18 – point og vinder' },
   { key: 'streak_warning', label: 'Streak-advarsel', sub: 'Søndag – hvis din stime er ved at ryge' },
+  { key: 'waste', label: 'Affald', sub: 'Aftenen før afhentning (kræver affaldskalender under Mig)' },
 ]
 
 export function NotificationSettings({ initial }: { initial: NotificationPrefs }) {

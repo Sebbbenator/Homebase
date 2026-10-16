@@ -17,6 +17,7 @@ export interface TaskInput {
   is_preset?: boolean
   due_date?: string | null
   assigned_to?: string | null
+  rotation?: boolean
 }
 
 function revalidateAll() {
@@ -65,6 +66,7 @@ export async function createTask(input: TaskInput): Promise<Task> {
       interval_days: isPreset ? (input.interval_days ?? null) : null,
       due_date: isPreset ? null : cleanDate(input.due_date),
       assigned_to: isPreset ? null : (input.assigned_to || null),
+      rotation: isPreset ? !!input.rotation : false,
     })
     .select()
     .single()
@@ -88,6 +90,7 @@ export async function updateTask(taskId: string, input: Partial<TaskInput>): Pro
       ...(input.interval_days !== undefined && { interval_days: input.interval_days }),
       ...(input.due_date !== undefined && { due_date: cleanDate(input.due_date) }),
       ...(input.assigned_to !== undefined && { assigned_to: input.assigned_to || null }),
+      ...(input.rotation !== undefined && { rotation: input.rotation }),
     })
     .eq('id', taskId)
     .eq('home_id', homeId)

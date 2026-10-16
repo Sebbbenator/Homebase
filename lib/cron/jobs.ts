@@ -1,9 +1,11 @@
 import { admin, getHomePrefs, isQuiet, localTime, notifyHome } from '@/lib/notify'
 import { getFreshness, isActive } from '@/lib/freshness'
 import { involves, startOfWeek, weeklyStreak } from '@/lib/points'
+import { isAbsent, nextUp } from '@/lib/rotation'
 import { buildWeeklyText } from '@/lib/scoreboard'
+import { fetchWasteEvents } from '@/lib/waste'
 import { pushToUsers } from '@/lib/push-server'
-import type { Completion, ShoppingItem, Task } from '@/lib/types'
+import type { Absence, Completion, HomeMember, ShoppingItem, Task } from '@/lib/types'
 
 type TaskRow = Task & { needed_notified_at: string | null }
 type Result = Record<string, number>
@@ -36,19 +38,30 @@ async function runHome(homeId: string, now: Date): Promise<Result> {
   const result: Result = {}
 
   const since = new Date(now.getTime() - 60 * 86_400_000).toISOString()
-  const [{ data: tasksRaw }, { data: completionsRaw }, { data: runs }, { data: profileRows }, { data: members }] = await Promise.all([
+  const [{ data: tasksRaw }, { data: completionsRaw }, { data: runs }, { data: profileRows }, { data: members }, { data: absenceRows }, { data: home }] = await Promise.all([
     supabase.from('tasks').select().eq('home_id', homeId),
     supabase.from('preset_completions').select().eq('home_id', homeId).gte('completed_at', since),
     supabase.from('cron_runs').select('job').eq('home_id', homeId).eq('run_date', t.dateKey),
     supabase.from('profiles').select('id, display_name, avatar_emoji'),
-    supabase.from('home_members').select('user_id').eq('home_id', homeId),
+    supabase.from('home_members').select('id, home_id, user_id, joined_at').eq('home_id', homeId),
+    supabase.from('absences').select().eq('home_id', homeId).gte('to_date', t.dateKey),
+    supabase.from('homes').select('waste_ics_url').eq('id', homeId).maybeSingle(),
   ])
 
   const tasks = ((tasksRaw ?? []) as TaskRow[]).filter(isActive)
   const completions = (completionsRaw ?? []) as Completion[]
-  const memberIds = (members ?? []).map((m) => m.user_id)
+  const memberRows = (members ?? []) as HomeMember[]
+  const memberIds = memberRows.map((m) => m.user_id)
+  const absences = (absenceRows ?? []) as Absence[]
+  // Fraværende springes over i påmindelser og rotation
+  const absent = memberIds.filter((id) => isAbsent(absences, id, t.dateKey))
   const names: Record<string, string> = {}
   for (const p of profileRows ?? []) names[p.id] = p.display_name || 'Nogen'
+  const turnText = (task: Task) => {
+    if (!task.rotation) return ''
+    const who = nextUp(task, completions, memberRows, absences, now)
+    return who ? ` · ${names[who] ?? 'Nogen'}s tur` : ''
+  }
 
   const ran = new Set((runs ?? []).map((r) => r.job))
   async function once(job: string, fn: () => Promise<void>) {
@@ -70,13 +83,13 @@ async function runHome(homeId: string, now: Date): Promise<Result> {
     (x) => !x.task.needed_notified_at || (x.task.last_completed_at && x.task.needed_notified_at < x.task.last_completed_at)
   )
   if (fresh.length) {
-    const recipients = Object.values(prefs).filter((p) => p.task_needed && !isQuiet(p, t)).map((p) => p.user_id)
+    const recipients = Object.values(prefs).filter((p) => p.task_needed && !isQuiet(p, t) && !absent.includes(p.user_id)).map((p) => p.user_id)
     if (recipients.length) {
       const payload =
         fresh.length === 1
           ? {
               title: `${fresh[0].task.title} trænger`,
-              body: `${fresh[0].fresh.label} · +${fresh[0].task.points} point til den der tager den`,
+              body: `${fresh[0].fresh.label} · +${fresh[0].task.points} point${turnText(fresh[0].task)}`,
               url: `/opgaver?task=${fresh[0].task.id}`,
               taskId: fresh[0].task.id,
               badge,
@@ -105,12 +118,12 @@ async function runHome(homeId: string, now: Date): Promise<Result> {
         'morning_brief',
         {
           title: `Godmorgen – ${n} ${n === 1 ? 'ting' : 'ting'} trænger i dag`,
-          body: listTitles(needing.map((x) => x.task.title)),
+          body: listTitles(needing.map((x) => x.task.title + turnText(x.task))),
           url: '/hjem',
           badge,
           tag: 'morning',
         },
-        { now, ignoreQuiet: true }
+        { now, ignoreQuiet: true, exclude: absent }
       )
       result.morning = sent.length
     })
@@ -130,9 +143,31 @@ async function runHome(homeId: string, now: Date): Promise<Result> {
           badge,
           tag: 'evening',
         },
-        { now }
+        { now, exclude: absent }
       )
       result.evening = sent.length
+    })
+  }
+
+  // 3b. Affald: aftenen før afhentning (fra kl. 17)
+  if (t.hour >= 17 && home?.waste_ics_url) {
+    await once('waste', async () => {
+      try {
+        const events = await fetchWasteEvents(home.waste_ics_url!.replace(/^webcal:\/\//i, 'https://'), 0)
+        const tomorrow = new Date(now.getTime() + 86_400_000)
+        const key = localTime(tomorrow).dateKey
+        const summaries = [...new Set(events.filter((e) => e.date === key).map((e) => e.summary))]
+        if (summaries.length === 0) return
+        const sent = await notifyHome(
+          homeId,
+          'waste',
+          { title: `♻️ ${summaries.join(' + ')} hentes i morgen`, body: 'Husk at sætte ud i aften', url: '/hjem', tag: `waste-${key}` },
+          { now, exclude: absent }
+        )
+        result.waste = sent.length
+      } catch (err) {
+        console.error('affaldskalender fejlede', homeId, err)
+      }
     })
   }
 
@@ -142,6 +177,7 @@ async function runHome(homeId: string, now: Date): Promise<Result> {
       const weekStart = startOfWeek(now).getTime()
       let sent = 0
       for (const id of memberIds) {
+        if (absent.includes(id)) continue
         const doneThisWeek = completions.some((c) => involves(c, id) && new Date(c.completed_at).getTime() >= weekStart)
         const streak = weeklyStreak(completions, id, now)
         if (doneThisWeek || streak < 1) continue
