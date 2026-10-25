@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { compareByFreshness, getFreshness, isActive } from '@/lib/freshness'
 import { pointsByUser, startOfWeek } from '@/lib/points'
 import { fetchWasteEvents, nextWaste, relativeDay } from '@/lib/waste'
-import type { Absence, Completion, Task } from '@/lib/types'
+import { nextUp } from '@/lib/rotation'
+import type { Absence, Completion, HomeMember, Task } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,7 +43,22 @@ export async function GET(req: NextRequest) {
     const due = tasks
       .map((t) => ({ t, f: getFreshness(t, now) }))
       .filter(({ f }) => f.state === 'now' || f.state === 'soon')
-    const taskList = due.slice(0, 10).map(({ t, f }) => ({ title: t.title, state: f.state, label: f.label }))
+    const completionsAll = (compRes.data ?? []) as Completion[]
+    const absencesAll = (absRes.data ?? []) as Absence[]
+    const members = memberIds.map((user_id) => ({ user_id }) as HomeMember)
+    // Hvem står på opgaven: fast tildelt, ellers hvis tur det er i rotationen
+    const whoOf = (t: Task) => {
+      const id = t.assigned_to ?? nextUp(t, completionsAll, members, absencesAll, now)
+      return id ? nameOf(id) : null
+    }
+    const taskList = due.slice(0, 10).map(({ t, f }) => ({
+      title: t.title,
+      state: f.state,
+      label: f.label,
+      category: t.category,
+      who: whoOf(t),
+      last_by: t.last_completed_by ? nameOf(t.last_completed_by) : null,
+    }))
 
     const shopping = (shopRes.data ?? []).map((i) => ({ name: i.name as string, quantity: (i.quantity as string | null) ?? null }))
 
